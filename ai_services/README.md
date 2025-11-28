@@ -1,4 +1,4 @@
-# Koperasi Receipt Analysis System
+# Cooperative Receipt Analysis System
 
 A comprehensive Flask-based application for analyzing financial transaction receipts using OCR and an AI-powered Account Code Recommender (LLM).
 
@@ -405,7 +405,7 @@ ocr = PaddleOCR(lang='id')
 
 ## License
 
-This project is part of the Koperasi financial management suite.
+This project is part of the Cooperative financial management suite.
 
 ## Future Enhancements
 
