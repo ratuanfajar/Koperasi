@@ -1,10 +1,10 @@
-# AI-Koperasi: Intelligent Financial Transaction Management System
+# AI-Cooperative: Intelligent Financial Transaction Management System
 
 An integrated system for managing cooperative financial transactions with AI-powered account code recommendations. This project combines Python-based OCR and LLM analysis with a Laravel web application for comprehensive financial management.
 
 ## 🎯 Project Overview
 
-**AI-Koperasi** is a complete financial management solution designed for cooperative organizations. It automates receipt analysis through OCR technology, leverages AI to recommend appropriate accounting codes, and provides a web-based interface for managing ledgers, postings, and financial reports.
+**AI-Cooperative** is a complete financial management solution designed for cooperative organizations. It automates receipt analysis through OCR technology, leverages AI to recommend appropriate accounting codes, and provides a web-based interface for managing ledgers, postings, and financial reports.
 
 The system processes financial documents (receipts, invoices, payment slips) by extracting text through OCR, analyzing content with LLM (via Groq API), and recommending appropriate Chart of Accounts (COA) codes.
 
