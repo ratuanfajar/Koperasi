@@ -1,10 +1,10 @@
-# Koperasi Web
+# Cooperative Web
 
 A Laravel-based web application for managing cooperative financial transactions, ledger entries, and financial reporting. The system provides intelligent account code recommendations and comprehensive financial analysis tools.
 
 ## Overview
 
-**Koperasi Web** is a modern financial management system built with Laravel 12, designed to streamline accounting operations for cooperative organizations. It features an AI-powered account code recommender, digital ledger management, posting functionality, trial balance generation, and comprehensive financial reports.
+**Cooperative Web** is a modern financial management system built with Laravel 12, designed to streamline accounting operations for cooperative organizations. It features an AI-powered account code recommender, digital ledger management, posting functionality, trial balance generation, and comprehensive financial reports.
 
 ## Key Features
 
