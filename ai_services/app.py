@@ -1,0 +1,72 @@
+from flask import Flask, request, jsonify, send_file
+import os
+from werkzeug.utils import secure_filename
+from config.settings import OUTPUT_DIR, STATIC_DIR
+from utils.image_utils import final_pipeline
+from utils.ocr_utils import run_ocr, convert_paddleocr_to_json, init_ocr
+from utils.llm_utils import analyze_receipt_with_llm
+from flask_cors import CORS
+
+
+ALLOWED_EXT = {"png", "jpg", "jpeg", "tiff", "bmp"}
+
+app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+app.config['UPLOAD_FOLDER'] = STATIC_DIR
+
+init_ocr()  # lazy init OCR model
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXT
+
+
+@app.route('/')
+def home():
+    return "Hello World!"
+
+@app.route('/health')
+def health():
+    return jsonify({'status': 'ok'})
+
+
+@app.route('/analyze', methods=['POST'])
+def analyze_receipt():
+    if 'file' not in request.files:
+        return jsonify({'error': 'file field is required'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'filename empty'}), 400
+
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'file type not allowed'}), 400
+
+    fname = secure_filename(file.filename)
+    save_path = os.path.join(app.config['UPLOAD_FOLDER'], fname)
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    file.save(save_path)
+
+    try:
+        # 1) preprocessing pipeline
+        processed_path = final_pipeline(save_path, out_dir=OUTPUT_DIR, filename=f'pre_{fname}')
+
+        # 2) OCR
+        ocr_raw = run_ocr(processed_path)
+        ocr_json = convert_paddleocr_to_json(ocr_raw[0])
+
+        # 3) LLM analysis
+        llm_result = analyze_receipt_with_llm(ocr_json)
+
+        return jsonify({
+            'ocr': ocr_json,
+            'llm': llm_result
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
