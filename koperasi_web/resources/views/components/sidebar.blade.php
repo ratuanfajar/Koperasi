@@ -14,7 +14,7 @@
       {{-- Rekomendasi Nomor Akun --}}
       <a href="{{ route('account-code-recommender.show') }}"
          class="nav-link d-flex align-items-center gap-2 {{ request()->is('account-code-recommender*') ? 'active fw-semibold text-primary' : 'text-dark' }}">
-        <i class="bi bi-lightning-charge"></i> Rekomendasi Nomor Akun
+        <i class="bi bi-lightning-charge"></i> Rekomendasi Kode Akun
       </a>
 
       {{-- Buku Besar Akun --}}
