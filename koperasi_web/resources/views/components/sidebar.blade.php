@@ -45,8 +45,11 @@
   </div>
 
   <div class="px-4 mb-3">
-    <a href="#" class="nav-link text-danger d-flex align-items-center gap-2">
-      <i class="bi bi-box-arrow-left"></i> Logout
-    </a>
+    <form action="{{ route('logout') }}" method="POST">
+        @csrf
+        <button type="submit" class="nav-link text-danger d-flex align-items-center gap-2 border-0 bg-transparent w-100" style="text-align: left;">
+            <i class="bi bi-box-arrow-left"></i> {{ __('Logout') }}
+        </button>
+    </form>
   </div>
 </div>

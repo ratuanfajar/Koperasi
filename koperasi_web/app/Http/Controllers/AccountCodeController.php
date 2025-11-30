@@ -16,6 +16,18 @@ class AccountCodeController extends Controller
     {
         $step = in_array($step, [1, 2, 3]) ? $step : 1;
 
+        // 1. Jika user mencoba akses Step 2 (Processing) tapi belum upload file
+        if ($step == 2 && !session()->has('file_to_process')) {
+            // Tendang balik ke Step 1
+            return redirect()->route('account-code-recommender.show', ['step' => 1]);
+        }
+
+        // 2. Jika user mencoba akses Step 3 (Result) tapi belum ada hasil AI
+        if ($step == 3 && !session()->has('prediction_result')) {
+            // Tendang balik ke Step 1
+            return redirect()->route('account-code-recommender.show', ['step' => 1]);
+        }
+
         $result = session('prediction_result', null);
         $imageUrl = session('file_public_url', null);
 
