@@ -21,11 +21,10 @@
         </div>
     </div>
 
-    {{-- SECTION 1 (Tidak berubah) --}}
+    {{-- SECTION 1: UNGGAH FILE --}}
     @if($step == 1)
-        @if (session('error'))
-            <div class="alert alert-danger">{{ session('error') }}</div>
-        @endif
+        {{-- [MODIFIKASI] Alert statis dihapus agar error muncul via Toast --}}
+        
         <form action="{{ route('account-code-recommender.store') }}" method="POST" enctype="multipart/form-data">
             @csrf 
             <div class="card shadow-sm">
@@ -33,7 +32,10 @@
                     <i class="bi bi-cloud-arrow-up fs-1 text-secondary mb-3"></i>
                     <p class="mb-1">Letakkan dokumen Anda di sini, atau<a href="#"  id="browseLink"> klik untuk memilih berkas</a></p>
                     <small class="text-secondary d-block mb-3">Format yang didukung: .jpg, .png, .jpeg | Maksimal 10 MB</small>
-                    <input type="file" name="document" id="fileInput" class="d-none">
+                    
+                    {{-- Input file hidden --}}
+                    <input type="file" name="document" id="fileInput" class="d-none" accept=".jpg,.jpeg,.png">
+                    
                     <p id="fileName" class="mt-2 fw-bold"></p>
                     <button type="submit" class="btn btn-primary mt-3" id="uploadButton" disabled>Unggah</button>
                 </div>
@@ -41,11 +43,11 @@
         </form>
     @endif
 
-    {{-- SECTION 2 (Tidak berubah) --}}
+    {{-- SECTION 2: MEMPROSES (Tidak berubah) --}}
     @if($step == 2)
         <div class="card shadow-sm">
             <div class="card-body text-center py-5">
-                <div class="progress" style="height: 8px; max-width: 400px; margin: 1.5rem auto;">ssd
+                <div class="progress" style="height: 8px; max-width: 400px; margin: 1.5rem auto;">
                     <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 75%;" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
                 <h5 class="card-title mb-2 mt-4">Memproses File</h5>
@@ -54,10 +56,9 @@
         </div>
     @endif
 
-    {{-- SECTION 3 --}}
+    {{-- SECTION 3: HASIL (Tidak berubah) --}}
     @if($step == 3)
         @if ($result)
-            
             <form action="{{ route('recommender.save') }}" method="POST" id="saveForm">
                 @csrf
                 <input type="hidden" name="selected_account_name" id="selectedAccountName">
@@ -80,7 +81,7 @@
                             <button type="button" id="btnTable" class="btn btn-outline-secondary w-50">Lihat Tabel</button>
                         </div>
 
-                        {{-- RESULT PANEL (Tidak berubah) --}}
+                        {{-- RESULT PANEL --}}
                         <div id="resultPanel">
                             <div class="card shadow-sm">
                                 <div class="card-body">
@@ -148,7 +149,7 @@
                             </div>
                         </div>
 
-                        {{-- TABLE PANEL (Tidak berubah) --}}
+                        {{-- TABLE PANEL --}}
                         <div id="tablePanel" class="d-none">
                             <div class="card shadow-sm">
                                 <div class="card-body">
@@ -196,7 +197,6 @@
                     </div>
                 </div>
             </form>
-
         @else
             <div class="alert alert-warning">
                 Tidak ada hasil ditemukan. Silakan coba lagi.
@@ -205,38 +205,21 @@
         @endif
     @endif
 
-    
+    {{-- MODAL CONFIRMATION --}}
     @if($step == 3)
-    <div class="modal fade" id="saveConfirmModal" tabindex="-1" aria-labelledby="saveConfirmModalLabel" aria-hidden="true">
+    <div class="modal fade" id="saveConfirmModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="saveConfirmModalLabel">Konfirmasi Penyimpanan</h5>
+                    <h5 class="modal-title">{{ __('Konfirmasi Penyimpanan') }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    Apakah Anda yakin data yang diinput sudah benar?
+                    {{ __('Apakah Anda yakin data yang diinput sudah benar?') }}
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="confirmSaveBtn">Ya, Simpan</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="saveSuccessModal" tabindex="-1" aria-labelledby="saveSuccessModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="saveSuccessModalLabel">Berhasil</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    Data transaksi telah berhasil disimpan.
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" id="successModalOkBtn">Oke</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+                    <button type="button" class="btn btn-primary" id="confirmSaveBtn">{{ __('Ya, Simpan') }}</button>
                 </div>
             </div>
         </div>
@@ -260,8 +243,21 @@
 
 @push('scripts')
 <script>
+    // [MODIFIKASI] Listener untuk error validasi dari Backend (Laravel) agar muncul via Toast
+    document.addEventListener('DOMContentLoaded', () => {
+        @if ($errors->any())
+            @foreach ($errors->all() as $error)
+                // Memanggil fungsi showToast global dari app.blade.php
+                if (typeof showToast === 'function') {
+                    showToast("{{ $error }}", 'error');
+                } else {
+                    alert("{{ $error }}");
+                }
+            @endforeach
+        @endif
+    });
+
     function initializeApp() {
-        // ... (Fungsi ini tidak berubah)
         const currentStep = {{ $step ?? 1 }};
         switch (currentStep) {
             case 1: setupCustomFileUpload(); break;
@@ -271,23 +267,62 @@
     }
 
     function setupCustomFileUpload() {
-        // ... (Fungsi ini tidak berubah)
         const browseLink = document.getElementById('browseLink');
         const fileInput = document.getElementById('fileInput');
         const fileNameDisplay = document.getElementById('fileName');
         const uploadButton = document.getElementById('uploadButton');
         const dropZone = document.getElementById('dropZone');
         if (!browseLink || !fileInput || !fileNameDisplay || !uploadButton || !dropZone) return; 
+        
+        const fileSelectedText = "{{ __('File selected: ') }}";
+
         browseLink.addEventListener('click', (e) => { e.preventDefault(); fileInput.click(); });
+        
         fileInput.addEventListener('change', () => {
             if (fileInput.files.length > 0) {
-                fileNameDisplay.textContent = 'File selected: ' + fileInput.files[0].name;
+                const file = fileInput.files[0];
+                
+                // [MODIFIKASI] Validasi Format File (Frontend)
+                const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+                if (!validTypes.includes(file.type)) {
+                    if (typeof showToast === 'function') {
+                        showToast("Format file tidak sesuai. Harap unggah JPG atau PNG.", 'error');
+                    } else {
+                        alert("Format file tidak sesuai.");
+                    }
+                    
+                    // Reset input
+                    fileInput.value = ''; 
+                    fileNameDisplay.textContent = '';
+                    uploadButton.disabled = true;
+                    return; 
+                }
+
+                // [MODIFIKASI] Validasi Ukuran File (Frontend) - Maks 10MB
+                const maxSize = 10 * 1024 * 1024; // 10MB
+                if (file.size > maxSize) {
+                    if (typeof showToast === 'function') {
+                        showToast("Ukuran file terlalu besar (Maksimal 10MB).", 'error');
+                    } else {
+                        alert("Ukuran file terlalu besar.");
+                    }
+                    
+                    // Reset input
+                    fileInput.value = ''; 
+                    fileNameDisplay.textContent = '';
+                    uploadButton.disabled = true;
+                    return;
+                }
+
+                // Jika Valid
+                fileNameDisplay.textContent = fileSelectedText + file.name;
                 uploadButton.disabled = false;
             } else {
                 fileNameDisplay.textContent = '';
                 uploadButton.disabled = true;
             }
         });
+
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             dropZone.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
         });
@@ -304,166 +339,140 @@
     }
 
     function aiProcessing() {
-        // ... (Fungsi ini tidak berubah)
         fetch('{{ route("recommender.process") }}', {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
         })
-        .then(res => res.ok ? res.json() : Promise.reject("Pemrosesan gagal"))
+        .then(res => res.ok ? res.json() : Promise.reject("Proses Gagal."))
         .then(data => {
-            if (data.status === 'success') window.location.href = '{{ route("account-code-recommender.show", ["step" => 3]) }}';
-            else { alert(data.message || 'Kesalahan'); window.location.href = '{{ route("account-code-recommender.show", ["step" => 1]) }}'; }
+            if (data.status === 'success') {
+                window.location.href = '{{ route("account-code-recommender.show", ["step" => 3]) }}';
+            } else { 
+                if (typeof showToast === 'function') {
+                    showToast(data.message || "{{ __('Gagal memproses data.') }}", 'error');
+                } else {
+                    alert(data.message || "{{ __('Gagal memproses data.') }}");
+                }
+                
+                setTimeout(() => {
+                    window.location.href = '{{ route("account-code-recommender.show", ["step" => 1]) }}'; 
+                }, 1500);
+            }
         })
         .catch(() => {
-            alert('Terjadi kesalahan saat memproses berkas. Silakan coba lagi.');
-            window.location.href = '{{ route("account-code-recommender.show", ["step" => 1]) }}';
+            if (typeof showToast === 'function') {
+                showToast("{{ __('Kesalahan saat memproses file. Silakan coba lagi.') }}", 'error');
+            } else {
+                alert("{{ __('Kesalahan saat memproses file. Silakan coba lagi.') }}");
+            }
+            setTimeout(() => {
+                window.location.href = '{{ route("account-code-recommender.show", ["step" => 1]) }}';
+            }, 1500);
         });
     }
 
-    // [PERBAIKAN] Ganti SELURUH fungsi viewResult dengan ini
     function viewResult() {
-        
-        // --- 1. Logika Tabbing (Tidak berubah) ---
         const resultPanel = document.getElementById('resultPanel');
         const tablePanel = document.getElementById('tablePanel');
         const btnResult = document.getElementById('btnResult');
         const btnTable = document.getElementById('btnTable');
-        btnResult.addEventListener('click', () => {
-            resultPanel.classList.remove('d-none');
-            tablePanel.classList.add('d-none');
-            btnResult.classList.add('btn-primary');
-            btnResult.classList.remove('btn-outline-secondary');
-            btnTable.classList.remove('btn-primary');
-            btnTable.classList.add('btn-outline-secondary');
-        });
-        btnTable.addEventListener('click', () => {
-            resultPanel.classList.add('d-none');
-            tablePanel.classList.remove('d-none');
-            btnTable.classList.add('btn-primary');
-            btnTable.classList.remove('btn-outline-secondary');
-            btnResult.classList.remove('btn-primary');
-            btnResult.classList.add('btn-outline-secondary');
-        });
+        
+        if(btnResult && btnTable) {
+            btnResult.addEventListener('click', () => {
+                resultPanel.classList.remove('d-none'); tablePanel.classList.add('d-none');
+                btnResult.classList.add('btn-primary'); btnResult.classList.remove('btn-outline-secondary');
+                btnTable.classList.remove('btn-primary'); btnTable.classList.add('btn-outline-secondary');
+            });
+            btnTable.addEventListener('click', () => {
+                resultPanel.classList.add('d-none'); tablePanel.classList.remove('d-none');
+                btnTable.classList.add('btn-primary'); btnTable.classList.remove('btn-outline-secondary');
+                btnResult.classList.remove('btn-primary'); btnResult.classList.add('btn-outline-secondary');
+            });
+        }
 
-        // --- 2. Logika Hidden Input Rekomendasi (Tidak berubah) ---
         const selectedAccountNameInput = document.getElementById('selectedAccountName');
         const radios = document.querySelectorAll('input[name="selected_account"]');
-        function updateHidden() {
-            const checked = document.querySelector('input[name="selected_account"]:checked');
-            if (checked && checked.value !== 'manual') { 
-                selectedAccountNameInput.value = checked.dataset.accountName;
-            } else {
-                selectedAccountNameInput.value = '';
-            }
-        }
-        updateHidden();
-        radios.forEach(r => r.addEventListener('change', updateHidden));
-
-        // --- 3. Logika Menampilkan Input Manual (Tidak berubah) ---
         const manualInputFields = document.getElementById('manualInputFields');
-        radios.forEach(radio => {
-            radio.addEventListener('change', function() {
-                if (this.value === 'manual') {
+        
+        function updateState() {
+            const checked = document.querySelector('input[name="selected_account"]:checked');
+            if (checked) {
+                if (checked.value === 'manual') {
                     manualInputFields.classList.remove('d-none');
+                    selectedAccountNameInput.value = '';
                 } else {
                     manualInputFields.classList.add('d-none');
+                    selectedAccountNameInput.value = checked.dataset.accountName;
                 }
-            });
-        });
+            }
+        }
+        radios.forEach(r => r.addEventListener('change', updateState));
+        updateState();
 
-        // --- 4. Logika Add/Delete Item Row (Tidak berubah) ---
         const tableBody = document.getElementById('itemsTableBody');
         const addItemButton = document.getElementById('addItemRow');
-        function createNewRowHtml() {
-            return `
-                <tr>
-                    <td><input type="text" name="item_nama[]" class="form-control form-control-sm" value=""></td>
-                    <td><input type="number" name="item_harga[]" class="form-control form-control-sm" value="0"></td>
-                    <td><input type="number" name="item_jumlah[]" class="form-control form-control-sm" value="1"></td>
-                    <td><button type="button" class="btn btn-danger btn-sm delete-item-btn"><i class="bi bi-trash"></i></button></td>
-                </tr>
-            `;
+        if(addItemButton && tableBody) {
+            addItemButton.addEventListener('click', () => {
+                const noItemsRow = tableBody.querySelector('td[colspan="4"]');
+                if (noItemsRow) noItemsRow.parentElement.remove();
+                tableBody.insertAdjacentHTML('beforeend', `<tr><td><input type="text" name="item_nama[]" class="form-control form-control-sm"></td><td><input type="number" name="item_harga[]" class="form-control form-control-sm" value="0"></td><td><input type="number" name="item_jumlah[]" class="form-control form-control-sm" value="1"></td><td><button type="button" class="btn btn-danger btn-sm delete-item-btn"><i class="bi bi-trash"></i></button></td></tr>`);
+            });
+            tableBody.addEventListener('click', (e) => {
+                if (e.target.closest('.delete-item-btn')) e.target.closest('tr').remove();
+            });
         }
-        addItemButton.addEventListener('click', () => {
-            const noItemsRow = tableBody.querySelector('td[colspan="4"]');
-            if (noItemsRow) {
-                noItemsRow.parentElement.remove();
-            }
-            tableBody.insertAdjacentHTML('beforeend', createNewRowHtml());
-        });
-        tableBody.addEventListener('click', (event) => {
-            const deleteButton = event.target.closest('.delete-item-btn');
-            if (deleteButton) {
-                deleteButton.closest('tr').remove();
-            }
-        });
 
-        // --- [BARU] 5. Logika Pop-up Modal (AJAX) ---
-        
-        // Ambil elemen-elemen baru
+        // --- Logika Simpan (Modal + AJAX + Toast) ---
         const saveForm = document.getElementById('saveForm');
         const saveButton = document.getElementById('saveButton');
         const confirmSaveBtn = document.getElementById('confirmSaveBtn');
-        const successModalOkBtn = document.getElementById('successModalOkBtn');
+        const confirmModalEl = document.getElementById('saveConfirmModal');
 
-        // Instance Modal Bootstrap (agar kita bisa kontrol Buka/Tutup)
-        const confirmModal = new bootstrap.Modal(document.getElementById('saveConfirmModal'));
-        const successModal = new bootstrap.Modal(document.getElementById('saveSuccessModal'));
-
-        // Saat tombol "Save" utama diklik...
-        saveButton.addEventListener('click', () => {
-            // ...tampilkan modal konfirmasi
-            confirmModal.show();
-        });
-
-        // Saat tombol "Ya, Simpan" di modal konfirmasi diklik...
-        confirmSaveBtn.addEventListener('click', () => {
-            // 1. Sembunyikan modal konfirmasi
-            confirmModal.hide();
+        if(saveButton && confirmModalEl) {
+            const confirmModal = new bootstrap.Modal(confirmModalEl);
             
-            // 2. Tunjukkan status loading di tombol
-            confirmSaveBtn.textContent = 'Menyimpan...';
-            confirmSaveBtn.disabled = true;
+            saveButton.addEventListener('click', () => confirmModal.show());
 
-            // 3. Siapkan data form untuk AJAX
-            const formData = new FormData(saveForm);
-            
-            // 4. Kirim data via fetch (AJAX)
-            fetch('{{ route("recommender.save") }}', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}', // Ambil token dari form
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // 5a. Jika SUKSES, tampilkan modal berhasil
-                    successModal.show();
-                } else {
-                    // 5b. Jika GAGAL (misal: validasi), tampilkan alert error
-                    alert('Error: ' + (data.message || 'Gagal menyimpan data.'));
-                }
-            })
-            .catch(error => {
-                // 5c. Tangani error server
-                console.error('Kesalahan Saat Menyimpan:', error);
-                alert('Terjadi error pada server. Silakan coba lagi.');
-            })
-            .finally(() => {
-                // 6. Kembalikan tombol konfirmasi ke normal
-                confirmSaveBtn.textContent = 'Ya, Simpan';
-                confirmSaveBtn.disabled = false;
+            confirmSaveBtn.addEventListener('click', () => {
+                confirmModal.hide();
+                confirmSaveBtn.disabled = true;
+                confirmSaveBtn.textContent = "{{ __('Menyimpan...') }}";
+                
+                const formData = new FormData(saveForm);
+                fetch('{{ route("recommender.save") }}', {
+                    method: 'POST', body: formData,
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                         if (typeof showToast === 'function') {
+                            showToast("{{ __('Data transaksi telah berhasil disimpan.') }}", 'success');
+                        } else {
+                            alert("Berhasil disimpan");
+                        }
+
+                        setTimeout(() => {
+                             window.location.href = '{{ route("account-code-recommender.show", ["step" => 1]) }}';
+                        }, 1000);
+
+                    } else {
+                        if (typeof showToast === 'function') showToast(data.message || 'Error', 'error');
+                        else alert(data.message);
+                        
+                        confirmSaveBtn.disabled = false;
+                        confirmSaveBtn.textContent = "{{ __('Ya, Simpan') }}";
+                    }
+                })
+                .catch(err => {
+                    if (typeof showToast === 'function') showToast("{{ __('Terjadi error pada server.') }}", 'error');
+                    else alert("Server Error");
+                    
+                    confirmSaveBtn.disabled = false;
+                    confirmSaveBtn.textContent = "{{ __('Ya, Simpan') }}";
+                });
             });
-        });
-
-        // Saat tombol "OK" di modal berhasil diklik...
-        successModalOkBtn.addEventListener('click', () => {
-            // ...redirect kembali ke Step 1
-            window.location.href = '{{ route("account-code-recommender.show", ["step" => 1]) }}';
-        });
+        }
     }
 
     document.addEventListener('DOMContentLoaded', initializeApp);

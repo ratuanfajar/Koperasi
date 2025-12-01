@@ -128,7 +128,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <img src="{{ $main_entry->receipt_image_path }}" alt="Receipt" class="img-fluid w-100">
+            <img src="{{ route('document.show', ['filename' => basename($main_entry->receipt_image_path)]) }}" alt="Receipt" class="img-fluid w-100">
           </div>
         </div>
       </div>
