@@ -12,6 +12,17 @@ use Illuminate\Support\Facades\DB;
 
 class AccountCodeController extends Controller
 {
+    public function showDocument($filename)
+    {
+        // Cek apakah file ada di disk private
+        if (!Storage::disk('private')->exists('uploads/' . $filename)) {
+            abort(404);
+        }
+
+        // Kembalikan file sebagai respons gambar
+        return response()->file(storage_path('app/private/uploads/' . $filename));
+    }
+
     public function index($step = 1)
     {
         $step = in_array($step, [1, 2, 3]) ? $step : 1;
@@ -29,7 +40,14 @@ class AccountCodeController extends Controller
         }
 
         $result = session('prediction_result', null);
-        $imageUrl = session('file_public_url', null);
+        $filePath = session('file_to_process', null);
+        $imageUrl = null;
+
+        // Jika ada file, buat URL menggunakan Route khusus, bukan Storage::url
+        if ($filePath) {
+            $filename = basename($filePath);
+            $imageUrl = route('document.show', ['filename' => $filename]);
+        }
 
         return view('dashboard.account-code-recommender', [
             'step' => (int) $step,
@@ -46,15 +64,13 @@ class AccountCodeController extends Controller
 
         if ($request->hasFile('document')) {
             
-            $path = $request->file('document')->store('uploads', 'public');
+            $path = $request->file('document')->store('uploads', 'private');
 
             session(['file_to_process' => $path]);
-            session(['file_public_url' => Storage::url($path)]);
 
-            // edirect ke Step 2
+            // redirect ke Step 2
             return redirect()->route('account-code-recommender.show', ['step' => 2])
-                ->with('success', 'File berhasil di-upload.')
-                ->with('file_path', $path); // Menyimpan path file di session
+                ->with('success', 'File berhasil di-upload.'); 
         }
 
         return redirect()->route('account-code-recommender.show', ['step' => 1])
@@ -63,18 +79,22 @@ class AccountCodeController extends Controller
 
     public function processImage(Request $request)
     {
+        set_time_limit(0);
+
         // Ambil path file dari session
         $path = session('file_to_process');
         if (!$path) {
             return response()->json(['status' => 'error', 'message' => 'File not found in session.'], 400);
         }
 
-        $fullPath = Storage::disk('public')->path($path);
+        $fullPath = Storage::disk('private')->path($path);
         $fileName = basename($path);
 
         try {
             // API Flask
             $response = Http::asMultipart()
+                ->timeout(120)     
+                ->connectTimeout(120)
                 ->attach('file', file_get_contents($fullPath), $fileName)
                 ->post('http://127.0.0.1:5000/analyze');
 
@@ -86,16 +106,15 @@ class AccountCodeController extends Controller
             $data = $response->json();
 
             if (isset($data['llm']) && is_array($data['llm'])) {
-                
                 session(['prediction_result' => $data['llm']]); 
-                
-                session()->forget('file_to_process');
                 return response()->json(['status' => 'success']);
-
             } else {
-                return response()->json(['status' => 'error', 'message' => 'LLM result key not found in response from AI server.'], 500);
+                return response()->json(['status' => 'error', 'message' => 'Format respon AI tidak sesuai.'], 500);
             }
 
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            // Error khusus jika Flask mati atau Timeout
+            return response()->json(['status' => 'error', 'message' => 'Koneksi ke AI Timeout. Coba gunakan gambar yang lebih kecil/jelas.'], 504);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
@@ -103,7 +122,7 @@ class AccountCodeController extends Controller
 
     public function save(Request $request)
     {
-    // [PERBAIKAN] Bungkus semua dalam try...catch
+        // [PERBAIKAN] Bungkus semua dalam try...catch
         try {
             // 1. Ambil data dari form
             $deskripsi = $request->input('deskripsi');
@@ -115,23 +134,23 @@ class AccountCodeController extends Controller
                 $akunTerpilihNama = $request->input('manual_account_name');
                 
                 if(empty($akunTerpilihKode) || empty($akunTerpilihNama)) {
-                    // [PERBAIKAN] Kirim error sebagai JSON
                     return response()->json([
                         'status' => 'error', 
                         'message' => 'Jika memilih manual, Kode Akun dan Nama Akun manual wajib diisi.'
-                    ], 422); // 422 Unprocessable Entity
+                    ], 422);
                 }
 
             } else {
                 $akunTerpilihNama = $request->input('selected_account_name');
             }
 
+            // [PERBAIKAN] Ubah default akun pembayaran ke 111 (Kas)
             $akunPembayaran = $request->input('payment_account_code', '111');
             $items_nama = $request->input('item_nama');
             $items_harga = $request->input('item_harga');
             $items_jumlah = $request->input('item_jumlah');
             
-            // 2. Tentukan Nominal Total (Logika Anda sudah benar)
+            // 2. Tentukan Nominal Total
             $totalNominal = 0;
             if (is_array($items_nama) && !empty($items_nama)) {
                 for ($i = 0; $i < count($items_nama); $i++) {
@@ -141,9 +160,10 @@ class AccountCodeController extends Controller
                 $totalNominal = (float)$request->input('nominal_total', 0);
             }
             
-            $imageUrl = session('file_public_url');
+            // [PERBAIKAN PENTING] Ambil PATH file, bukan URL
+            $filePath = session('file_to_process'); 
             
-            // 4. Buat ID & Kode Transaksi (Logika Anda sudah benar)
+            // 4. Buat ID & Kode Transaksi
             $transactionGroupId = (string) Str::uuid();
             $periode = \Carbon\Carbon::parse($tanggal)->format('Ym');
             $prefix = 'JV-' . $periode . '-';
@@ -163,7 +183,7 @@ class AccountCodeController extends Controller
                 'debit' => $totalNominal,
                 'credit' => 0,
                 'description' => $deskripsi,
-                'receipt_image_path' => $imageUrl,
+                'receipt_image_path' => $filePath, // [PERBAIKAN] Gunakan $filePath
             ]);
 
             // 6. Buat Entri Kedua (Kredit)
@@ -172,11 +192,11 @@ class AccountCodeController extends Controller
                 'transaction_code' => $transactionCode,
                 'date' => $tanggal,
                 'account_code' => $akunPembayaran,
-                'account_name' => 'Kas', // TODO: Buat dinamis
+                'account_name' => 'Kas', // [PERBAIKAN] Nama akun Kas
                 'debit' => 0,
                 'credit' => $totalNominal,
                 'description' => "Pembayaran untuk: " . $deskripsi,
-                'receipt_image_path' => $imageUrl,
+                'receipt_image_path' => $filePath, // [PERBAIKAN] Gunakan $filePath
             ]);
 
             // 7. Simpan item-item
@@ -194,11 +214,9 @@ class AccountCodeController extends Controller
             // 8. Bersihkan session
             session()->forget(['prediction_result', 'file_public_url', 'file_to_process']);
             
-            // [PERBAIKAN] Kembalikan JSON sukses, bukan redirect
             return response()->json(['status' => 'success']);
 
         } catch (\Exception $e) {
-            // [PERBAIKAN] Tangani error server
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
