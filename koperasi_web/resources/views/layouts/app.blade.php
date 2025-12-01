@@ -11,7 +11,6 @@
   @stack('styles')
 
     @php
-    // Variabel $step sekarang dikontrol oleh view yang meng-extend
     $step = $step ?? 1; 
     @endphp
 
@@ -45,30 +44,24 @@
       padding: 1.5rem;
     }
 
-    /* =================================================================== */
-    /* [PERBAIKAN] STYLE BARU UNTUK STEP PROGRESS (SESUAI GAMBAR) */
-    /* =================================================================== */
     .steps {
       position: relative;
       width: 100%;
       max-width: 600px;
-      /* [PERBAIKAN] Menambah jarak atas dan bawah */
       margin: 2rem auto 3rem; 
     }
     
-    /* Garis abu-abu di belakang */
     .steps::before {
       content: "";
       position: absolute;
-      top: 20px; /* Posisi di tengah lingkaran (40px / 2) */
+      top: 20px; 
       left: 0;
       width: 100%;
       height: 4px;
-      background: #e0e0e0; /* Warna abu-abu */
+      background: #e0e0e0;
       z-index: 0;
     }
     
-    /* Garis progress (hijau) di depan */
     .steps::after {
       content: "";
       position: absolute;
@@ -87,20 +80,18 @@
       ;
     }
 
-    /* Wrapper untuk lingkaran + teks */
     .step-item {
       display: flex;
       flex-direction: column;
       align-items: center;
       position: relative;
       z-index: 1;
-      width: 80px; /* Beri sedikit ruang */
+      width: 80px; 
       text-align: center;
     }
 
-    /* Lingkaran Angka */
     .step-number {
-      width: 40px; /* Ukuran lingkaran lebih besar */
+      width: 40px; 
       height: 40px;
       border-radius: 50%;
       display: flex;
@@ -108,9 +99,9 @@
       justify-content: center;
       font-weight: bold;
       transition: all 0.3s ease;
-      border: 4px solid #e0e0e0; /* Default border abu-abu */
-      background-color: #e0e0e0; /* Default bg abu-abu */
-      color: #9e9e9e; /* Default teks abu-abu */
+      border: 4px solid #e0e0e0; 
+      background-color: #e0e0e0; 
+      color: #9e9e9e; 
     }
 
     /* Teks di bawah lingkaran */
@@ -118,13 +109,11 @@
       margin-top: 0.5rem;
       font-size: 0.9rem;
       font-weight: 500;
-      color: #9e9e9e; /* Default teks abu-abu */
+      color: #9e9e9e;
       transition: all 0.3s ease;
     }
 
-    /* --- LOGIKA STATUS --- */
 
-    /* Status: Selesai (active) - Hijau */
     .step-item.active .step-number {
         background-color: #198754;
         color: #fff;
@@ -135,7 +124,6 @@
         font-weight: 600;
     }
 
-    /* Status: Sekarang (current) - Biru */
     .step-item.current .step-number {
         background-color: #0d6efd;
         color: #fff;
@@ -145,9 +133,7 @@
         color: #0d6efd;
         font-weight: 600;
     }
-    /* ====================== AKHIR STYLE BARU ====================== */
 
-     /* AVATAR */
    .avatar {
      width: 36px;
      height: 36px;
@@ -166,32 +152,56 @@
   {{-- Konten Halaman --}}
   <div class="main-content">
 
-    {{-- [PERBAIKAN] Header dirapikan dan avatar ditambahkan kembali --}}
     <header class="d-flex justify-content-between align-items-center py-4 bg-white shadow-sm rounded mb-4 px-4">
       <h4 class="mb-0 fw-bold">@yield('page_title', 'Sistem Koperasi')</h4>
       <!-- <div class="d-flex align-items-center gap-2">
-        <span>Jane Doe</span>
+        <span class="fw-medium text-dark">Jane Doe</span>
         <div class="avatar"></div>
       </div> -->
     </header>
     
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-    @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-    
     @yield('content')
   </div>
 
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1060;"></div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    function showToast(message, type = 'success') {
+        const toastContainer = document.querySelector('.toast-container');
+        const isSuccess = type === 'success';
+        const color = isSuccess ? '#198754' : '#dc3545';
+        const iconClass = isSuccess ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger';
+        
+        const toastHtml = `
+            <div class="toast align-items-center border-0 shadow mb-2" role="alert" aria-live="assertive" aria-atomic="true" style="background: white; border-left: 5px solid ${color} !important;">
+                <div class="d-flex">
+                    <div class="toast-body d-flex align-items-center gap-2">
+                        <i class="bi ${iconClass} fs-5"></i>
+                        <span class="text-dark fw-medium">${message}</span>
+                    </div>
+                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        const newToastEl = toastContainer.lastElementChild;
+        const toast = new bootstrap.Toast(newToastEl, { delay: 5000 });
+        toast.show();
+        newToastEl.addEventListener('hidden.bs.toast', () => newToastEl.remove());
+    }
+
+    // Tangkap Session Flash dari Controller (Redirect)
+    document.addEventListener('DOMContentLoaded', () => {
+        @if(session('success'))
+            showToast("{{ session('success') }}", 'success');
+        @endif
+        @if(session('error'))
+            showToast("{{ session('error') }}", 'error');
+        @endif
+    });
+  </script>
 
   @stack('scripts')
 </body>
