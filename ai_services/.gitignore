@@ -5,6 +5,13 @@ build/
 dist/
 wheels/
 *.egg-info
+*.path
+uv.lock
+*.ipynb
+pyproject.toml
+main.py
+output/
 
 # Virtual environments
 .venv
+.env

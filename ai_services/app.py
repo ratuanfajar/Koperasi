@@ -15,7 +15,7 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 
 app.config['UPLOAD_FOLDER'] = STATIC_DIR
 
-init_ocr()  # lazy init OCR model
+init_ocr() 
 
 
 def allowed_file(filename):
