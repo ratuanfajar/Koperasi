@@ -74,7 +74,7 @@
                     <div class="card-body">
                         <div class="spinner-border text-primary mb-4" role="status" style="width: 3rem; height: 3rem;"></div>
                         <h5 class="fw-bold text-dark">Sedang Menganalisis...</h5>
-                        <p class="text-muted mb-0">AI sedang memahami data dan menentukan akun akuntansi yang tepat.</p>
+                        <p class="text-muted mb-0">AI sedang memahami data dan menentukan nomor akun yang tepat.</p>
                         <p class="text-muted small fst-italic mt-2">Mohon tunggu sejenak, jangan tutup halaman ini.</p>
                     </div>
                 </div>
@@ -149,12 +149,6 @@
                                         <option value="NK_JUAL">Nota Penjualan</option>
                                     </select>
                                 </div>
-                            </div>
-
-                            {{-- KETERANGAN (DESCRIPTION) --}}
-                            <div class="mb-3">
-                                <label class="form-label small text-muted text-uppercase fw-bold">Keterangan (Opsional)</label>
-                                <textarea class="form-control" name="description" rows="2" placeholder="Masukkan catatan tambahan atau detail transaksi di sini..."></textarea>
                             </div>
 
                             <hr class="text-muted opacity-25">

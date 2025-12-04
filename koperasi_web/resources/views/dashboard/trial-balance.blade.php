@@ -83,7 +83,7 @@
                     {{-- FOOTER TOTAL --}}
                     <tfoot class="bg-light fw-bold border-top" style="font-size: 0.95rem;">
                         <tr>
-                            <td colspan="2" class="text-end text-uppercase text-secondary pe-3 py-3">Total</td>
+                            <td colspan="2" class="text-end text-uppercase fw-bold pe-3 py-3">Total</td>
                             <td class="text-end text-dark py-3">
                                 {{ number_format($totalDebit, 0, ',', '.') }}
                             </td>

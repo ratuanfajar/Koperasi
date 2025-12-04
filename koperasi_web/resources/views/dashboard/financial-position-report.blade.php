@@ -5,8 +5,14 @@
 @php
     if (!function_exists('nF')) {
         function nF($number) {
+            // 1. Jika angka 0, tampilkan strip "-"
             if ($number == 0) return '-';
-            return number_format(abs($number), 0, ',', '.');
+            // 2. Jika angka NEGATIF, gunakan format kurung (X.XXX)
+            if ($number < 0) {
+                return '(' . number_format(abs($number), 0, ',', '.') . ')';
+            }
+            // 3. Jika angka POSITIF, format biasa X.XXX
+            return number_format($number, 0, ',', '.');
         }
     }
 @endphp
@@ -65,7 +71,7 @@
             <table class="table table-bordered align-middle mb-0" style="font-size: 0.95rem;">
                 
                 {{-- HEADER TABEL (Gaya Konsisten #EDEDED) --}}
-                <thead class="fw-bold text-uppercase" style="font-size: 0.85rem;">
+                <thead class="fw-bold text-uppercase" style="font-size: 1rem;">
                     <tr class="align-middle text-center">
                         <th class="text-start ps-4 py-3" style="width: 50%">Uraian</th>
                         @foreach($years as $year)

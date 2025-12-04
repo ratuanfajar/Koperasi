@@ -47,6 +47,12 @@
                     </tr>
                 </thead>
                 <tbody>
+                    {{-- INISIALISASI VARIABEL TOTAL --}}
+                    @php
+                        $totalDebit = 0;
+                        $totalCredit = 0;
+                    @endphp
+
                     @forelse ($groups as $group_id => $entries)
                         @php
                             $rowCount = $entries->count(); 
@@ -54,8 +60,14 @@
 
                         {{-- Loop setiap baris dalam satu transaksi --}}
                         @foreach ($entries as $index => $entry)
+                            {{-- AKUMULASI TOTAL --}}
+                            @php
+                                $totalDebit += $entry->debit;
+                                $totalCredit += $entry->credit;
+                            @endphp
+
                             <tr>
-                                {{-- Code Loop Anda (tidak berubah karena sudah bg-white) ... --}}
+                                {{-- TANGGAL & BUKTI (Hanya baris pertama grup) --}}
                                 @if ($index === 0)
                                     <td rowspan="{{ $rowCount }}" class="text-center bg-white align-top pt-3">
                                         {{ $entry->date->format('d/m/Y') }}
@@ -66,7 +78,9 @@
                                     </td>
                                 @endif
 
-                                <td class="position-relative">
+                                {{-- NAMA AKUN (Logika Styling) --}}
+                                {{-- Jika Kredit > 0, maka rata kanan (text-end) & padding (pe-4) --}}
+                                <td class="position-relative {{ $entry->credit > 0 ? 'text-end pe-4' : 'text-start' }}">
                                     <div class="bg-white align-top">
                                         {{ $entry->account_name }}
                                     </div>
@@ -102,7 +116,6 @@
                         @endforeach
                     @empty
                         <tr>
-                            {{-- PERUBAHAN 2: bg-light diganti bg-white pada state kosong --}}
                             <td colspan="7" class="text-center py-5 text-muted bg-white">
                                 <div class="d-flex flex-column align-items-center">
                                     <i class="bi bi-journal-x fs-1 mb-2 text-secondary"></i>
@@ -112,6 +125,19 @@
                         </tr>
                     @endforelse
                 </tbody>
+
+                {{-- FOOTER UNTUK TOTAL --}}
+                @if(!$groups->isEmpty())
+                <tfoot class="bg-light fw-bold border-top">
+                    <tr>
+                        <td colspan="4" class="text-end text-uppercase py-3 pe-3">Total</td>
+                        <td class="text-end py-3 fw-bold">{{ number_format($totalDebit, 0, ',', '.') }}</td>
+                        <td class="text-end py-3 fw-bold">{{ number_format($totalCredit, 0, ',', '.') }}</td>
+                        <td></td> {{-- Kosong untuk kolom Detail --}}
+                    </tr>
+                </tfoot>
+                @endif
+
             </table>
         </div>
         

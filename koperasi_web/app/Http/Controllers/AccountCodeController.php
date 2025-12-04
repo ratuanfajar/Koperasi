@@ -193,7 +193,7 @@ class AccountCodeController extends Controller
             $accounts = $request->input('accounts');
             $debits = $request->input('debit');
             $credits = $request->input('credit');
-            $description = $request->input('description');
+            // $description = $request->input('description');
 
             foreach ($accounts as $index => $accountCode) {
                 $debVal = (float) $debits[$index];
@@ -207,7 +207,7 @@ class AccountCodeController extends Controller
                     'transaction_group_id' => $trxGroupId,
                     'transaction_code'     => $trxCode,
                     'date'                 => $tanggal,
-                    'description'          => $description,
+                    // 'description'          => $description,
                     'account_code'         => $accountCode,
                     'account_name'         => $accountName,
                     'debit'                => $debVal,
