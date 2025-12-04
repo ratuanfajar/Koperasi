@@ -9,6 +9,7 @@ dependencies = [
     "flask>=3.1.2",
     "flask-cors>=6.0.1",
     "groq>=0.36.0",
+    "langchain-groq>=1.1.0",
     "numpy>=2.3.5",
     "opencv-python>=4.11.0.86",
     "paddleocr>=3.3.2",

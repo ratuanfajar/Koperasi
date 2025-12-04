@@ -4,115 +4,132 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\LedgerEntry;
-// [PERBAIKAN] Tambahkan 'use' statement yang hilang untuk CSV
+use App\Models\ChartOfAccount; 
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Carbon\Carbon;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class PostingController extends Controller
 {
     public function index(Request $request)
     {
-        $accounts = LedgerEntry::select('account_code', 'account_name')
-                               ->distinct()
-                               ->orderBy('account_code', 'asc')
-                               ->get();
+        // 1. Ambil List Akun dari Master Akun (ChartOfAccount)
+        $accounts = ChartOfAccount::orderBy('code', 'asc')->get();
 
+        // 2. Setup Default Date Range (Bulan Ini)
         $startDate = now()->startOfMonth()->format('Y-m-d');
         $endDate = now()->endOfMonth()->format('Y-m-d');
-        $defaultDateRange = $startDate . ' to ' . $endDate;
-        
-        $dateRange = $request->input('date_range', $defaultDateRange);
+        $dateRange = $request->input('date_range');
 
-        $entries = [];
-        $selectedAccount = null;
-        $runningBalance = 0;
-
-        if ($request->filled('account_filter')) {
-            
-            $selectedAccountCode = $request->input('account_filter');
-            $selectedAccount = $accounts->firstWhere('account_code', $selectedAccountCode);
-
-            $accountQuery = LedgerEntry::where('account_code', $selectedAccountCode);
-                                        
+        if ($dateRange) {
             $dates = explode(' to ', $dateRange);
-            if (count($dates) == 2) {
-                $accountQuery->whereBetween('date', [$dates[0], $dates[1]]);
-            }
-            
-            $accountEntries = $accountQuery->orderBy('date', 'asc')->get();
-
-            foreach ($accountEntries as $entry) {
-                $runningBalance += $entry->debit - $entry->credit;
-                $entry->balance = $runningBalance;
-                $entries[] = $entry;
-            }
+            $startDate = $dates[0] ?? $startDate;
+            $endDate = $dates[1] ?? $endDate;
         }
 
-        return view('dashboard.posting', [
+        $selectedAccount = null;
+
+        $entries = new LengthAwarePaginator([], 0, 10);
+
+        if ($request->filled('account_filter')) {
+            $selectedAccountCode = $request->input('account_filter');
+            $selectedAccount = $accounts->where('code', $selectedAccountCode)->first();
+        } else {
+            $selectedAccount = $accounts->first();
+        }
+
+        // 3. Query Data (Hanya jika ada akun terpilih)
+        if ($selectedAccount) {
+            $entries = LedgerEntry::where('account_code', $selectedAccount->code)
+                        ->whereBetween('date', [$startDate, $endDate])
+                        ->orderBy('date', 'asc')
+                        ->orderBy('created_at', 'asc')
+                        ->paginate(10); 
+            
+            $entries->appends($request->all());
+        }
+
+        return view('dashboard.posting', [ 
             'accounts' => $accounts,
             'entries' => $entries,
+            'entries' => $entries,
             'selectedAccount' => $selectedAccount,
-            'dateRange' => $dateRange 
+            'startDate' => $startDate,
+            'endDate' => $endDate
         ]);
     }
 
     public function exportCsv(Request $request)
     {
         if (!$request->filled('account_filter')) {
-            return redirect()->route('posting', $request->query())
-                             ->with('error', 'Silakan pilih akun terlebih dahulu untuk mengekspor.');
+            return back()->with('error', 'Silakan pilih akun terlebih dahulu.');
         }
 
         $startDate = now()->startOfMonth()->format('Y-m-d');
         $endDate = now()->endOfMonth()->format('Y-m-d');
-        $defaultDateRange = $startDate . ' to ' . $endDate;
-        $dateRange = $request->input('date_range', $defaultDateRange);
+        $dateRange = $request->input('date_range');
 
-        $selectedAccountCode = $request->input('account_filter');
-        $selectedAccount = LedgerEntry::select('account_name', 'account_code')
-                                      ->where('account_code', $selectedAccountCode)
-                                      ->first();
-
-        $accountQuery = LedgerEntry::where('account_code', $selectedAccountCode);
-        
-        $dates = explode(' to ', $dateRange);
-        if (count($dates) == 2) {
-            $accountQuery->whereBetween('date', [$dates[0], $dates[1]]);
+        if ($dateRange) {
+            $dates = explode(' to ', $dateRange);
+            $startDate = $dates[0] ?? $startDate;
+            $endDate = $dates[1] ?? $endDate;
         }
 
-        $entries = $accountQuery->orderBy('date', 'asc')->get();
-        
+        $accountCode = $request->input('account_filter');
+        $selectedAccount = ChartOfAccount::where('code', $accountCode)->first();
+
+        if (!$selectedAccount) {
+            return back()->with('error', 'Akun tidak ditemukan.');
+        }
+
+        $entries = LedgerEntry::where('account_code', $accountCode)
+                    ->whereBetween('date', [$startDate, $endDate])
+                    ->orderBy('date', 'asc')
+                    ->get();
+
         if ($entries->isEmpty()) {
-            return redirect()->route('posting', $request->query())
-                             ->with('error', 'Tidak ada data untuk diekspor pada filter ini.');
+            return back()->with('error', 'Tidak ada data transaksi untuk diekspor.');
         }
 
-        $fileName = 'posting_export_' . $selectedAccountCode . '_' . date('Y-m-d') . '.csv';
+        $fileName = 'Ledger_' . $accountCode . '_' . date('Ymd_His') . '.csv';
 
         $response = new StreamedResponse(function() use ($entries, $selectedAccount) {
-            
             $handle = fopen('php://output', 'w');
             
-            fputcsv($handle, ['Account:', $selectedAccount->account_code . ' - ' . $selectedAccount->account_name]);
+            fputcsv($handle, ['Buku Besar Umum']);
+            fputcsv($handle, ['Akun:', $selectedAccount->code . ' - ' . $selectedAccount->name]);
+            fputcsv($handle, ['Kategori:', $selectedAccount->category]);
             fputcsv($handle, ['']); 
+
             fputcsv($handle, [
-                'Date',
-                'Trx Code',
-                'Description',
+                'Tanggal',
+                'Keterangan',
                 'Debit',
-                'Credit',
-                'Balance'
+                'Kredit',
+                'D/K', 
+                'Saldo'
             ]);
 
-            $runningBalance = 0;
+            $saldo = 0;
+            $kategori = $selectedAccount->category ?? 'Aset';
+            $isNormalDebit = in_array($kategori, ['Aset', 'Beban']);
+
             foreach ($entries as $entry) {
-                $runningBalance += $entry->debit - $entry->credit;
+                if ($isNormalDebit) {
+                    $saldo += ($entry->debit - $entry->credit);
+                    $posisi = ($saldo >= 0) ? 'D' : 'K';
+                } else {
+                    $saldo += ($entry->credit - $entry->debit);
+                    $posisi = ($saldo >= 0) ? 'K' : 'D';
+                }
+
                 fputcsv($handle, [
                     $entry->date,
-                    $entry->transaction_code,
-                    $entry->description,
+                    $entry->description ?? '-', 
                     $entry->debit,
                     $entry->credit,
-                    $runningBalance 
+                    $posisi,
+                    abs($saldo) 
                 ]);
             }
 

@@ -11,7 +11,7 @@ class LedgerController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Tentukan periode default (Bulan Ini)
+        // 1. Tentukan periode default
         $startDate = now()->startOfMonth()->format('Y-m-d');
         $endDate = now()->endOfMonth()->format('Y-m-d');
         $defaultDateRange = $startDate . ' to ' . $endDate;
@@ -23,13 +23,13 @@ class LedgerController extends Controller
                                           DB::raw('MAX(date) as max_date'))
                                  ->groupBy('transaction_group_id');
         
-        // 3. [HANYA FILTER TANGGAL] Terapkan filter tanggal
+        // 3. Filter tanggal
         $dates = explode(' to ', $dateRange);
         if (count($dates) == 2) {
             $groupQuery->whereBetween('date', [$dates[0], $dates[1]]);
         }
 
-        // 4. Paginasi dan ambil data
+        // 4. Paginasi
         $paginatedGroups = $groupQuery->orderBy('max_date', 'desc')->paginate(10);
         $groups = LedgerEntry::whereIn('transaction_group_id', $paginatedGroups->pluck('transaction_group_id'))
                              ->with('items')
@@ -37,7 +37,6 @@ class LedgerController extends Controller
                              ->get()
                              ->groupBy('transaction_group_id');
 
-        // 5. Kirim data ke view (tanpa $categories)
         return view('dashboard.ledger', [
             'paginator' => $paginatedGroups,
             'groups' => $groups,
@@ -47,16 +46,15 @@ class LedgerController extends Controller
 
     public function exportCsv(Request $request)
     {
-        // Tentukan periode default
         $startDate = now()->startOfMonth()->format('Y-m-d');
         $endDate = now()->endOfMonth()->format('Y-m-d');
         $defaultDateRange = $startDate . ' to ' . $endDate;
         $dateRange = $request->input('date_range', $defaultDateRange);
 
-        // Buat query dasar
-        $query = LedgerEntry::orderBy('date', 'desc');
+        $query = LedgerEntry::orderBy('date', 'desc')
+                            ->orderBy('transaction_code', 'desc')
+                            ->orderBy('created_at', 'asc'); 
 
-        // [HANYA FILTER TANGGAL] Terapkan filter
         $dates = explode(' to ', $dateRange);
         if (count($dates) == 2) {
             $query->whereBetween('date', [$dates[0], $dates[1]]);
@@ -69,19 +67,28 @@ class LedgerController extends Controller
                              ->with('error', 'Tidak ada data untuk diekspor pada filter ini.');
         }
 
-        $fileName = 'ledger_export_' . date('Y-m-d') . '.csv';
+        $fileName = 'jurnal_umum_' . date('Ymd') . '.csv';
 
-        $response = new StreamedResponse(function() use ($entries) {
+        return new StreamedResponse(function() use ($entries) {
             $handle = fopen('php://output', 'w');
+            
             fputcsv($handle, [
-                'Date', 'Transaction Code', 'Description', 'Account Code', 
-                'Account Name', 'Debit', 'Credit', 'Receipt Image Path'
+                'Tanggal', 
+                'No. Bukti Transaksi', 
+                'Nama Akun', 
+                'Pos Ref (Kode)', 
+                'Debit', 
+                'Kredit',
             ]);
+
             foreach ($entries as $entry) {
                 fputcsv($handle, [
-                    $entry->date, $entry->transaction_code, $entry->description, 
-                    $entry->account_code, $entry->account_name, $entry->debit, 
-                    $entry->credit, $entry->receipt_image_path
+                    $entry->date->format('Y-m-d'), 
+                    $entry->transaction_code, 
+                    $entry->account_name, 
+                    $entry->account_code, 
+                    $entry->debit, 
+                    $entry->credit
                 ]);
             }
             fclose($handle);
@@ -89,7 +96,5 @@ class LedgerController extends Controller
             'Content-Type' => 'text/csv',
             'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
         ]);
-
-        return $response;
     }
 }

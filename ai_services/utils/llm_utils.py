@@ -1,129 +1,130 @@
+import json
 import os
-from groq import Groq
-from config.settings import GROQ_API_KEY
+from langchain_groq import ChatGroq
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.exceptions import OutputParserException
 
-PROMPT_TEMPLATE = """
-Kamu adalah ahli akuntansi yang bertugas untuk menganalisis dokumen bukti transaksi keuangan dan merekomendasikan beberapa kemungkinan kode akun
-berdasarkan hasil OCR dari dokumen transaksi keuangan (seperti kwitansi, nota, invoice, atau slip pembayaran) untuk memberikan ringkasan transaksi
-beserta **3 rekomendasi kode akun** dari Chart of Accounts (COA) standar.
+# 1. Konfigurasi Path
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+COA_PATH = os.path.join(BASE_DIR, 'base_knowledge', 'coa.json')
 
-Gunakan hasil OCR berikut sebagai konteks:
-{ocr}
+# 2. Fungsi Load COA (OPTIMIZED: Filter & Format di Python)
+def load_coa_optimized():
+    try:
+        with open(COA_PATH, 'r') as f:
+            data = json.load(f)
+        
+        clean_list = []
+        for akun in data:
+            nomor = str(akun.get('nomor', ''))
+            nama = akun.get('nama', 'Unknown')
+            if len(nomor) >= 3:
+                clean_list.append(f"- Kode: {nomor} | Nama: {nama}")
+                
+        if not clean_list:
+            return "Warning: COA kosong."
+        return "\n".join(clean_list)
 
----
+    except Exception:
+        return "Error loading COA."
 
-### TUGAS:
-1. Analisis isi teks hasil OCR dan identifikasi elemen-elemen utama transaksi berikut:
-   - `tanggal_transaksi`: tanggal transaksi dalam format YYYY-MM-DD.
-   - `pihak_terlibat`: nama pihak yang menerima atau memberi uang.
-   - `deskripsi_transaksi`: maksud, tujuan, atau keterangan transaksi.
-   - `nominal_total`: jumlah uang yang tercantum.
-   - `mata_uang`: mis. IDR, USD, dll.
-   - `tipe_transaksi`: "debit" atau "kredit" (sesuaikan dengan konteks transaksi).
-   - `items`: (opsional) HANYA JIKA daftar barang/jasa bila terlihat jelas di teks seperti dari nota.
+# 3. Fungsi Utama
+def analyze_ocr_transaction(ocr_input):
+    coa_clean_text = load_coa_optimized()
+    
+    if isinstance(ocr_input, (dict, list)):
+        ocr_text = json.dumps(ocr_input, indent=2, ensure_ascii=False)
+    else:
+        ocr_text = str(ocr_input)
 
-2. Berdasarkan hasil analisis, berikan **3 rekomendasi akun** dari COA yang paling relevan.
-   Setiap rekomendasi harus memuat:
-   - `kode_akun` (contoh: "511")
-   - `nama_akun` (contoh: "Beban Perlengkapan Kantor")
-   - `confidence` (nilai 0–1, perkiraan tingkat keyakinan)
-   - `alasan` (penjelasan singkat mengapa akun tersebut cocok)
+    system_prompt = """
+    Anda adalah Akuntan Internal Koperasi.
+    Fokus perspektif Anda adalah sebagai PEMBELI/PENGGUNA JASA, kecuali dokumen jelas menyatakan Koperasi sebagai penerbit.
 
----
+    [SUMBER KEBENARAN - DAFTAR AKUN]
+    {coa_context}
 
-### PANDUAN ANALISIS:
-1. **Gunakan logika akuntansi umum:**
-   - 1xx → Aset
-   - 2xx → Kewajiban
-   - 3xx → Modal
-   - 4xx → Pendapatan
-   - 5xx → Beban / Pengeluaran operasional
-   - 6xx → Beban non-operasional
-   - 7xx → Pendapatan non-operasional
-   - Jika ada istilah seperti "Kas Kecil", "Kas Utama" → anggap akun Kas (1xx).
+    [TUGAS 1: KLASIFIKASI JENIS BUKTI]
+    1. Analisis konteks teks dan tentukan `jenis_bukti` dari pilihan berikut:
+       - **BKM (Bukti Kas Masuk)**: Jika koperasi MENERIMA uang (Kwitansi masuk, Bukti Setor).
+       - **BKK (Bukti Kas Keluar)**: Jika koperasi MENGELUARKAN uang (Nota belanja, Kwitansi pembayaran beban).
+       - **Nota Penjualan**: Jika dokumen adalah rincian penjualan barang/jasa kepada anggota/pelanggan.
+       - **Nota Pembelian**: Jika dokumen adalah rincian pembelian stok/barang dari supplier.
+       - **BM (Bukti Memorial)**: Jika transaksi non-tunai (Penyusutan, Pembalik, Koreksi).
+    2. Jika terdapat nomor transaksi di dalamnya maka cantumkan sesuai yang tertera pada `nomor_bukti` dan jika tidak ada maka berikan `null` saja.
 
-2. **Bersihkan teks OCR:**
-   - Hapus simbol aneh, karakter rusak, dan baris tidak relevan.
-   - Gabungkan kalimat yang seharusnya satu konteks.
 
-3. **Tangani nilai numerik:**
-   - Ubah format seperti “1.000,50” → 1000.50.
-   - Tentukan apakah itu debit/kredit berdasar narasi (“pembelian”, “penerimaan”, dll).
+    [ATURAN MAPPING AKUN]
+    1. **COPY-PASTE ONLY**: Nama akun di output HARUS SAMA PERSIS karakter-per-karakter dengan daftar di atas.
+    2. **ATURAN AKUN YANG DIPILIH**:          
+       - HANYA gunakan akun **Level Detail (3 Digit)** atau akun yang memiliki `kode_jenis` tidak null.          
+       - **DILARANG KERAS** menggunakan akun Header/Induk (1 digit atau 2 digit) seperti "1 - ASET" atau "10 - Aset Lancar".          
+       - Contoh BENAR: "101", "527".          
+       - Contoh SALAH: "1", "10", "5", "52".
+    2. **JANGAN HALUSINASI**:
+       - Dilarang menggunakan akun yang tidak ada di daftar akun teks di atas.
+       - Dilarang memodifikasi informasi-informasi dari akun termasuk memodifikasi NAMA AKUN.
+    3. **PRINSIP DUALITAS (DOUBLE ENTRY) - WAJIB:**
+       - Setiap transaksi HARUS memiliki minimal satu akun posisi **Debit** dan satu akun posisi **Kredit**.
+       - **Total Nominal DEBIT harus SAMA PERSIS dengan Total Nominal KREDIT (Balance).**
+       - Dilarang memberikan jurnal yang pincang (hanya Debit saja atau Kredit saja)
+       - Dilarang memberikan jurnal kode akun dengan nominal 0.
 
-4. **Tambahkan konteks transaksi:**
-   - Contoh interpretasi:
-     - "Pembayaran" → beban atau pengeluaran (debit)
-     - "Penerimaan" → pendapatan (kredit)
-     - "Setoran modal" → modal (3xxx)
-     - "Pembelian alat tulis" → beban perlengkapan kantor (5xxx)
+    [ATURAN BAKU]
+    - Aset → Debit menaikkan, Kredit menurunkan.
+    - Kewajiban → Debit menurunkan, Kredit menaikkan.
+    - Modal → Debit menaikkan, Kredit menurunkan.
+    - Pendapatan → Debit menurunkan, Kredit menaikkan.
+    - Biaya → Debit menurunkan, Kredit menaikkan.
+    - HANYA catat nilai transaksi bersih (Total Bayar). 
+    - JANGAN mencatat uang kembalian sebagai jurnal terpisah.
+    - Balance: Total Debit == Total Kredit.
 
-5. **Bagian rekomendasi akun (inti reasoning):**
-   - Analisis teks untuk menentukan kategori transaksi.
-   - Pilih 3 kode akun paling relevan dari COA.
-   - Sertakan confidence dan alasan singkat untuk tiap pilihan.
-   - Jangan hanya beri 1 jawaban benar — tujuannya untuk memberi alternatif bagi petugas koperasi.
+    Output HANYA JSON valid.
+    """
 
----
+    human_prompt = """
+    Analisis data OCR berikut:
+    {ocr_data}
 
-### FORMAT OUTPUT WAJIB (JSON valid):
-- Output **harus berupa JSON valid** (bisa di-parse tanpa error).
-- **Jangan hapus field apa pun.**
-- Jika data tidak ditemukan di teks, isi value dengan `null` (bukan hapus atau diganti dengan karakter lain).
-- Selalu sertakan semua key dengan urutan seperti di bawah.
-
-```json
-{{
-  "tanggal_transaksi": "<YYYY-MM-DD>",
-  "pihak_terlibat": "<Nama vendor atau pihak terkait>",
-  "deskripsi_transaksi": "<Deskripsi ringkas transaksi>",
-  "mata_uang": "<Kode mata uang, mis. IDR>",
-  "nominal_total": "<Total nominal transaksi>",
-  "tipe_transaksi": "<debit|kredit>",
-  "items": [
+    Berikan output JSON sesuai format:
     {{
-      "nama_item": "<Nama item>",
-      "jumlah": "<Jumlah>",
-      "harga_satuan": "<Harga satuan>",
-      "subtotal": "<Jumlah × harga_satuan>"
+      "jenis_bukti": "...",
+      "nomor_bukti": "...",
+      "tanggal_transaksi": "YYYY-MM-DD",
+      "pihak_terlibat": "...",
+      "items": [ {{ "nama_item": "...", "jumlah": 0, "harga": 0, "subtotal": 0 }} ],
+      "analisis_akuntansi": "...",
+      "rekomendasi_akun": [
+         {{ "kode_akun": "...", "nama_akun": "...", "posisi": "Debit", "nominal": 0 }},
+         {{ "kode_akun": "...", "nama_akun": "...", "posisi": "Kredit", "nominal": 0 }}
+      ]
     }}
-  ],
-  "rekomendasi_akun_transaksi": [
-    {{
-      "kode_akun": "<Kode akun>",
-      "nama_akun": "<Nama akun>",
-      "confidence": "<Nilai antara 0–1>",
-      "alasan": "<Alasan rekomendasi>"
-    }}
-  ]
-}}
-"""
+    """
 
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_prompt),
+        ("human", human_prompt)
+    ])
 
-def analyze_receipt_with_llm(ocr_json):
-    if not GROQ_API_KEY:
-        raise RuntimeError('GROQ_API_KEY is not set in environment')
-
-    client = Groq(api_key=GROQ_API_KEY)
-
-    prompt = PROMPT_TEMPLATE.format(ocr=ocr_json)
-
-    response = client.chat.completions.create(
-        model='llama-3.3-70b-versatile',
-        messages=[
-            {'role': 'system', 'content': 'Kamu adalah ahli akuntansi analisis yang membantu menganalisis bukti transaksi keuangan'},
-            {'role': 'user', 'content': prompt}
-        ],
-        temperature=0,
-        response_format={"type": "json_object"}
+    llm = ChatGroq(
+        temperature=0, 
+        model_name="llama-3.3-70b-versatile"
     )
 
-    # pastikan hasil LLM dikonversi ke dict
-    llm_content = response.choices[0].message.content
-    if isinstance(llm_content, str):
-        import json
-        try:
-            llm_content = json.loads(llm_content)
-        except json.JSONDecodeError:
-            llm_content = {"raw": llm_content}
+    parser = JsonOutputParser()
 
-    return llm_content
+    chain = prompt | llm | parser
+
+    try:
+        response = chain.invoke({
+            "coa_context": coa_clean_text,
+            "ocr_data": ocr_text
+        })
+        return response
+
+    except OutputParserException as e:
+        return {"status": "error", "message": "Gagal parsing JSON dari AI", "raw_output": str(e)}
+    except Exception as e:
+        return {"status": "error", "message": f"System Error: {str(e)}"}

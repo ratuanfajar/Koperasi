@@ -31,13 +31,12 @@
             background: #ffffff;
             padding: 50px 40px;
             border-radius: 16px;
-            /* Bayangan halus yang sama dengan Login */
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
         }
 
         .error-icon {
             font-size: 6rem;
-            color: #ff6b6b; /* Merah soft untuk ikon error */
+            color: #ff6b6b; 
             margin-bottom: 20px;
             line-height: 1;
         }
@@ -77,7 +76,7 @@
         }
 
         .btn-primary-custom:hover {
-            background-color: #1e3a8a !important; /* Biru sedikit lebih gelap saat hover */
+            background-color: #1e3a8a !important; 
             border-color: #1e3a8a !important;
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(13, 110, 253, 0.3);

@@ -4,15 +4,23 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>@yield('title', 'Sistem Koperasi')</title>
-  <link rel="icon" type="image/png" href="{{ asset('assets/favicon.png') }}">
+  {{-- Favicon Standar (Browser Desktop Lama & Baru) --}}
+  <link rel="icon" type="image/png" href="{{ asset('assets/favicon/favicon-96x96.png') }}" sizes="96x96" />
+  <link rel="shortcut icon" href="{{ asset('assets/favicon/favicon.ico') }}" />
+
+  {{-- Untuk iPhone/iPad (Apple Touch Icon) --}}
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('assets/favicon/apple-touch-icon.png') }}" />
+
+  {{-- Untuk Android & Chrome Mobile (PWA Manifest) --}}
+  <link rel="manifest" href="{{ asset('assets/favicon/site.webmanifest') }}" />
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   
   @stack('styles')
 
-    @php
+  @php
     $step = $step ?? 1; 
-    @endphp
+  @endphp
 
   <style>
     body {
@@ -68,7 +76,7 @@
       top: 20px;
       left: 0;
       height: 4px;
-      background: #198754; /* Warna hijau */
+      background: #198754; 
       z-index: 0;
       transition: width 0.3s ease;
       width:
@@ -104,7 +112,6 @@
       color: #9e9e9e; 
     }
 
-    /* Teks di bawah lingkaran */
     .step-title {
       margin-top: 0.5rem;
       font-size: 0.9rem;
@@ -154,10 +161,6 @@
 
     <header class="d-flex justify-content-between align-items-center py-4 bg-white shadow-sm rounded mb-4 px-4">
       <h4 class="mb-0 fw-bold">@yield('page_title', 'Sistem Koperasi')</h4>
-      <!-- <div class="d-flex align-items-center gap-2">
-        <span class="fw-medium text-dark">Jane Doe</span>
-        <div class="avatar"></div>
-      </div> -->
     </header>
     
     @yield('content')

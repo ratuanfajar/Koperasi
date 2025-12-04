@@ -1,9 +1,10 @@
 import cv2
 import numpy as np
 import os
-from PIL import Image as PILImage
-from config.settings import OUTPUT_DIR
+from config.settings import OUTPUT_DIR, TESSERACT_PATH
+import pytesseract
 
+pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
 
 def rotate_bound(image, angle):
     (h, w) = image.shape[:2]
@@ -19,7 +20,6 @@ def rotate_bound(image, angle):
 
 
 def auto_orient_receipt_safe_strict(image_path, output_path=None):
-    import pytesseract
     img = cv2.imread(image_path)
     if img is None:
         raise FileNotFoundError(f"Gambar '{image_path}' tidak ditemukan.")

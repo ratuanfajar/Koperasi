@@ -9,25 +9,29 @@ class LedgerEntry extends Model
 {
     use HasFactory;
 
-    /**
-     * Atribut yang boleh diisi secara massal.
-     *
-     * @var array
-     */
     protected $fillable = [
+        'transaction_group_id',
+        'transaction_code',
         'date',
         'account_code',
         'account_name',
+        'description',
         'debit',
         'credit',
-        'description',
         'receipt_image_path',
-        'transaction_group_id',
-        'transaction_code'
+    ];
+
+    protected $casts = [
+        'date' => 'date'
     ];
 
     public function items()
     {
         return $this->hasMany(TransactionItem::class);
+    }
+
+    public function account()
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'account_code', 'code');
     }
 }

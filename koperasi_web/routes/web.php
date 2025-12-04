@@ -6,7 +6,8 @@ use App\Http\Controllers\AccountCodeController;
 use App\Http\Controllers\LedgerController;
 use App\Http\Controllers\PostingController;
 use App\Http\Controllers\TrialBalanceController;
-use App\Http\Controllers\FinanceReportController;
+use App\Http\Controllers\SHUReportController;
+use App\Http\Controllers\FinancialPositionReportController;
 use App\Http\Controllers\AuthController;
 
 Route::get('/', function () {
@@ -35,22 +36,26 @@ Route::middleware('auth')->group(function () {
     Route::post('/save-recommendation', [AccountCodeController::class, 'save'])
         ->name('recommender.save');
 
-    // Ledger
+    // Jurnal Umum
     Route::get('/ledger', [LedgerController::class, 'index'])->name('ledger');
     Route::get('/ledger/export-csv', [LedgerController::class, 'exportCsv'])->name('ledger.export');
 
-    // Posting
+    // Buku Besar Umum
     Route::get('/posting', [PostingController::class, 'index'])->name('posting');
     Route::get('/posting/export-csv', [PostingController::class, 'exportCsv'])->name('posting.export');
 
-    // Trial Balance
+    // Neraca 
     Route::get('/trial-balance', [TrialBalanceController::class, 'index'])->name('trial-balance');
     Route::get('/trial-balance/export-csv', [TrialBalanceController::class, 'exportCsv'])->name('trial-balance.export');
 
-    // Finance Report
-    Route::get('/finance-report', [FinanceReportController::class, 'index'])->name('finance-report');
-    Route::get('/finance-report/export-csv', [FinanceReportController::class, 'exportCsv'])->name('finance-report.export');
+    // SHU Report
+    Route::get('/shu-report', [SHUReportController::class, 'index'])->name('shu-report');
+    Route::get('/shu-report/export-csv', [SHUReportController::class, 'exportCsv'])->name('shu-report.export');
 
+    // Financial Position Report
+    Route::get('/financial-position-report', [FinancialPositionReportController::class, 'index'])->name('financial-position-report');
+    Route::get('/financial-position-report/export-csv', [FinancialPositionReportController::class, 'exportCsv'])->name('financial-position-report.export');
+    
     Route::get('/private-document/{filename}', [AccountCodeController::class, 'showDocument'])
     ->name('document.show');
 });

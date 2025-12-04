@@ -10,7 +10,6 @@ uv.lock
 *.ipynb
 pyproject.toml
 main.py
-output/
 
 # Virtual environments
 .venv

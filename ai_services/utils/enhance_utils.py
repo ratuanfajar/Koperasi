@@ -6,7 +6,7 @@ import numpy as np
 import cv2
 from basicsr.archs.srvgg_arch import SRVGGNetCompact
 from realesrgan import RealESRGANer
-from config.settings import REAL_ESRGAN_MODEL, WEIGHTS_DIR
+from config.settings import REAL_ESRGAN_MODEL
 
 
 def ensure_realesrgan_model(model_path=REAL_ESRGAN_MODEL):

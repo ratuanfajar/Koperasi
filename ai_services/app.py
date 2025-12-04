@@ -1,14 +1,14 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify
 import os
 from werkzeug.utils import secure_filename
 from config.settings import OUTPUT_DIR, STATIC_DIR
 from utils.image_utils import final_pipeline
 from utils.ocr_utils import run_ocr, convert_paddleocr_to_json, init_ocr
-from utils.llm_utils import analyze_receipt_with_llm
+from utils.llm_utils import analyze_ocr_transaction
 from flask_cors import CORS
 
 
-ALLOWED_EXT = {"png", "jpg", "jpeg", "tiff", "bmp"}
+ALLOWED_EXT = {"png", "jpg", "jpeg"}
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -57,7 +57,7 @@ def analyze_receipt():
         ocr_json = convert_paddleocr_to_json(ocr_raw[0])
 
         # 3) LLM analysis
-        llm_result = analyze_receipt_with_llm(ocr_json)
+        llm_result = analyze_ocr_transaction(ocr_json)
 
         return jsonify({
             'ocr': ocr_json,

@@ -22,7 +22,7 @@ class TrialBalanceController extends Controller
         // 3. Buat query dasar
         $query = LedgerEntry::query();
         
-        // 4. [PERBAIKAN] Selalu terapkan filter tanggal (karena $dateRange selalu ada)
+        // 4. Selalu terapkan filter tanggal (karena $dateRange selalu ada)
         $dates = explode(' to ', $dateRange);
         if (count($dates) == 2) {
             $query->whereBetween('date', [$dates[0], $dates[1]]);
@@ -54,7 +54,7 @@ class TrialBalanceController extends Controller
 
     public function exportCsv(Request $request)
     {
-        // 1. Tentukan periode default (sama seperti index)
+        // 1. Tentukan periode default
         $startDate = now()->startOfMonth()->format('Y-m-d');
         $endDate = now()->endOfMonth()->format('Y-m-d');
         $defaultDateRange = $startDate . ' to ' . $endDate;
@@ -63,7 +63,7 @@ class TrialBalanceController extends Controller
         // 2. Buat query dasar
         $query = LedgerEntry::query();
 
-        // 3. [PERBAIKAN] Selalu terapkan filter tanggal
+        // 3. Selalu terapkan filter tanggal
         $dates = explode(' to ', $dateRange);
         if (count($dates) == 2) {
             $query->whereBetween('date', [$dates[0], $dates[1]]);
@@ -80,7 +80,7 @@ class TrialBalanceController extends Controller
                         ->orderBy('account_code', 'asc')
                         ->get();
         
-        // 5. [PERBAIKAN] Validasi data kosong (feedback untuk user)
+        // 5. Validasi data kosong (feedback untuk user)
         if ($balances->isEmpty()) {
             return redirect()->route('trial-balance', $request->query())
                              ->with('error', 'Tidak ada data untuk diekspor pada periode ini.');
@@ -96,10 +96,8 @@ class TrialBalanceController extends Controller
         $response = new StreamedResponse(function() use ($balances, $totalDebit, $totalCredit) {
             $handle = fopen('php://output', 'w');
 
-            // Header
             fputcsv($handle, ['Account', 'Account Name', 'Debit (Rp)', 'Credit (Rp)']);
 
-            // Data
             foreach ($balances as $balance) {
                 fputcsv($handle, [
                     $balance->account_code,
@@ -109,7 +107,6 @@ class TrialBalanceController extends Controller
                 ]);
             }
 
-            // Total
             fputcsv($handle, ['']); 
             fputcsv($handle, ['Total', '', $totalDebit, $totalCredit]);
 

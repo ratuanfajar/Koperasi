@@ -1,9 +1,6 @@
 from paddleocr import PaddleOCR
-from config.settings import WEIGHTS_DIR
-import os
 
 OCR = None
-
 
 def init_ocr():
     global OCR
@@ -15,7 +12,6 @@ def run_ocr(image_path):
     global OCR
     if OCR is None:
         init_ocr()
-    # PaddleOCR returns list of pages/results; keep interface similar to notebook
     result = OCR.predict(image_path)
     return result
 

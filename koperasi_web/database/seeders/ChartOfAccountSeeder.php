@@ -1,0 +1,150 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+
+class ChartOfAccountSeeder extends Seeder
+{
+    public function run(): void
+    {
+        DB::table('chart_of_accounts')->truncate();
+
+        $rawData = [
+            ["nomor" => "1", "nama" => "ASET", "kode_kelas" => "1", "kode_kelompok" => null, "kode_jenis" => null, "keterangan" => null],
+            ["nomor" => "10", "nama" => "Aset Lancar", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => null, "keterangan" => null],
+            ["nomor" => "101", "nama" => "Kas", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "101", "keterangan" => null],
+            ["nomor" => "102", "nama" => "Giro pada Bank...", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "102", "keterangan" => "Sebutkan nama Bank yang bersangkutan"],
+            ["nomor" => "103", "nama" => "Giro pada Bank...", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "103", "keterangan" => null],
+            ["nomor" => "104", "nama" => "Simpanan pada Koperasi...", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "104", "keterangan" => "Sebutkan nama Bank atau Koperasi yang bersangkutan"],
+            ["nomor" => "105", "nama" => "Simpanan pada Bank...", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "105", "keterangan" => null],
+            ["nomor" => "106", "nama" => "Simpanan berjangka pada Koperasi...", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "106", "keterangan" => "Sebutkan nama Bank atau Koperasi yang bersangkutan"],
+            ["nomor" => "107", "nama" => "Simpanan berjangka pada Bank...", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "107", "keterangan" => null],
+            ["nomor" => "108", "nama" => "Surat-surat Berharga Jangka Pendek", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "108", "keterangan" => null],
+            ["nomor" => "109", "nama" => "Piutang Pinjaman kepada Anggota", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "109", "keterangan" => null],
+            ["nomor" => "110", "nama" => "Pinjaman kepada Non-Anggota", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "110", "keterangan" => null],
+            ["nomor" => "111", "nama" => "Piutang Bunga", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "111", "keterangan" => null],
+            ["nomor" => "112", "nama" => "Piutang Pinjaman Lain-lain", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "112", "keterangan" => null],
+            ["nomor" => "113", "nama" => "Penyisihan Piutang Tak Tertagih", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "113", "keterangan" => null],
+            ["nomor" => "114", "nama" => "Partisipasi Bruto yang Masih Harus Diterima", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "114", "keterangan" => null],
+            ["nomor" => "115", "nama" => "Pendapatan yang Masih Harus Diterima", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "115", "keterangan" => null],
+            ["nomor" => "116", "nama" => "Premi Asuransi", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "116", "keterangan" => null],
+            ["nomor" => "117", "nama" => "Perlengkapan Kantor", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "117", "keterangan" => null],
+            ["nomor" => "118", "nama" => "Penyertaan", "kode_kelas" => "1", "kode_kelompok" => "10", "kode_jenis" => "118", "keterangan" => null],
+            ["nomor" => "12", "nama" => "Aset Tetap", "kode_kelas" => "1", "kode_kelompok" => "12", "kode_jenis" => null, "keterangan" => null],
+            ["nomor" => "121", "nama" => "Tanah", "kode_kelas" => "1", "kode_kelompok" => "12", "kode_jenis" => "121", "keterangan" => null],
+            ["nomor" => "122", "nama" => "Bangunan", "kode_kelas" => "1", "kode_kelompok" => "12", "kode_jenis" => "122", "keterangan" => null],
+            ["nomor" => "123", "nama" => "Kendaraan", "kode_kelas" => "1", "kode_kelompok" => "12", "kode_jenis" => "123", "keterangan" => null],
+            ["nomor" => "124", "nama" => "Inventaris Kantor", "kode_kelas" => "1", "kode_kelompok" => "12", "kode_jenis" => "124", "keterangan" => null],
+            ["nomor" => "125", "nama" => "Akumulasi Penyusutan Bangunan", "kode_kelas" => "1", "kode_kelompok" => "12", "kode_jenis" => "125", "keterangan" => null],
+            ["nomor" => "126", "nama" => "Akumulasi Penyusutan Kendaraan", "kode_kelas" => "1", "kode_kelompok" => "12", "kode_jenis" => "126", "keterangan" => null],
+            ["nomor" => "127", "nama" => "Akumulasi penyusutan Inventaris Kantor", "kode_kelas" => "1", "kode_kelompok" => "12", "kode_jenis" => "127", "keterangan" => null],
+            ["nomor" => "13", "nama" => "Aset lain-lain", "kode_kelas" => "1", "kode_kelompok" => "13", "kode_jenis" => null, "keterangan" => null],
+            ["nomor" => "131", "nama" => "Biaya Pra-Operasi", "kode_kelas" => "1", "kode_kelompok" => "13", "kode_jenis" => "131", "keterangan" => null],
+            ["nomor" => "2", "nama" => "KEWAJIBAN", "kode_kelas" => "2", "kode_kelompok" => null, "kode_jenis" => null, "keterangan" => null],
+            ["nomor" => "20", "nama" => "Kewajiban Lancar", "kode_kelas" => "2", "kode_kelompok" => "20", "kode_jenis" => null, "keterangan" => null],
+            ["nomor" => "201", "nama" => "Simpanan Anggota", "kode_kelas" => "2", "kode_kelompok" => "20", "kode_jenis" => "201", "keterangan" => null],
+            ["nomor" => "202", "nama" => "Simpanan Non-Anggota", "kode_kelas" => "2", "kode_kelompok" => "20", "kode_jenis" => "202", "keterangan" => "Sebutkan nama Simpanan tersebut!"],
+            ["nomor" => "203", "nama" => "Biaya Yang Masih Harus Dibayar", "kode_kelas" => "2", "kode_kelompok" => "20", "kode_jenis" => "203", "keterangan" => null],
+            ["nomor" => "204", "nama" => "Pendapatan Sewa Yang Diterima di Muka", "kode_kelas" => "2", "kode_kelompok" => "20", "kode_jenis" => "204", "keterangan" => null],
+            ["nomor" => "205", "nama" => "Simpanan Berjangka Anggota", "kode_kelas" => "2", "kode_kelompok" => "20", "kode_jenis" => "205", "keterangan" => null],
+            ["nomor" => "206", "nama" => "Simpanan Berjangka Non Anggota", "kode_kelas" => "2", "kode_kelompok" => "20", "kode_jenis" => "206", "keterangan" => null],
+            ["nomor" => "210", "nama" => "Pinjaman yang Diterima (untuk KSP)", "kode_kelas" => "2", "kode_kelompok" => "20", "kode_jenis" => "210", "keterangan" => null],
+            ["nomor" => "211", "nama" => "Modal Tidak Tetap (untuk USP)", "kode_kelas" => "2", "kode_kelompok" => "20", "kode_jenis" => "211", "keterangan" => null],
+            ["nomor" => "3", "nama" => "MODAL", "kode_kelas" => "3", "kode_kelompok" => null, "kode_jenis" => null, "keterangan" => null],
+            ["nomor" => "30", "nama" => "Kekayaan Bersih", "kode_kelas" => "3", "kode_kelompok" => "30", "kode_jenis" => null, "keterangan" => null],
+            ["nomor" => "301", "nama" => "Simpanan Pokok (untuk KSP)", "kode_kelas" => "3", "kode_kelompok" => "30", "kode_jenis" => "301", "keterangan" => null],
+            ["nomor" => "302", "nama" => "Simpanan Wajib (untuk KSP)", "kode_kelas" => "3", "kode_kelompok" => "30", "kode_jenis" => "302", "keterangan" => null],
+            ["nomor" => "303", "nama" => "Simpanan Khusus (untuk KSP)", "kode_kelas" => "3", "kode_kelompok" => "30", "kode_jenis" => "303", "keterangan" => null],
+            ["nomor" => "304", "nama" => "Modal Tetap/Modal Disetor (untuk USP)", "kode_kelas" => "3", "kode_kelompok" => "30", "kode_jenis" => "304", "keterangan" => null],
+            ["nomor" => "305", "nama" => "Modal Tetap Tambahan (untuk USP)", "kode_kelas" => "3", "kode_kelompok" => "30", "kode_jenis" => "305", "keterangan" => null],
+            ["nomor" => "306", "nama" => "Modal Sumbangan", "kode_kelas" => "3", "kode_kelompok" => "30", "kode_jenis" => "306", "keterangan" => null],
+            ["nomor" => "307", "nama" => "Cadangan Umum", "kode_kelas" => "3", "kode_kelompok" => "30", "kode_jenis" => "307", "keterangan" => null],
+            ["nomor" => "308", "nama" => "Cadangan Tujuan Resiko", "kode_kelas" => "3", "kode_kelompok" => "30", "kode_jenis" => "308", "keterangan" => null],
+            ["nomor" => "309", "nama" => "SHU Tahun Berjalan", "kode_kelas" => "3", "kode_kelompok" => "30", "kode_jenis" => "309", "keterangan" => null],
+            ["nomor" => "4", "nama" => "PENDAPATAN", "kode_kelas" => "4", "kode_kelompok" => null, "kode_jenis" => null, "keterangan" => null],
+            ["nomor" => "40", "nama" => "Partisipasi Bruto Anggota", "kode_kelas" => "4", "kode_kelompok" => "40", "kode_jenis" => null, "keterangan" => null],
+            ["nomor" => "401", "nama" => "Partisipasi Jasa Pinjaman", "kode_kelas" => "4", "kode_kelompok" => "40", "kode_jenis" => "401", "keterangan" => null],
+            ["nomor" => "402", "nama" => "Partisipasi Jasa Provisi", "kode_kelas" => "4", "kode_kelompok" => "40", "kode_jenis" => "402", "keterangan" => null],
+            ["nomor" => "403", "nama" => "Partisipasi Jasa Administrasi", "kode_kelas" => "4", "kode_kelompok" => "40", "kode_jenis" => "403", "keterangan" => null],
+            ["nomor" => "41", "nama" => "Pendapatan dari Non-Anggota", "kode_kelas" => "4", "kode_kelompok" => "41", "kode_jenis" => null, "keterangan" => null],
+            ["nomor" => "411", "nama" => "Pendapatan Bunga Pinjaman", "kode_kelas" => "4", "kode_kelompok" => "41", "kode_jenis" => "411", "keterangan" => null],
+            ["nomor" => "412", "nama" => "Pendapatan Bunga Simpanan", "kode_kelas" => "4", "kode_kelompok" => "41", "kode_jenis" => "412", "keterangan" => null],
+            // Saya ubah duplikat 412 menjadi 413 untuk Provisi
+            ["nomor" => "413", "nama" => "Pendapatan Provisi", "kode_kelas" => "4", "kode_kelompok" => "41", "kode_jenis" => "413", "keterangan" => "(Nomor akun ganda sesuai dokumen)"],
+            ["nomor" => "414", "nama" => "Pendapatan Administrasi", "kode_kelas" => "4", "kode_kelompok" => "41", "kode_jenis" => "414", "keterangan" => null],
+            ["nomor" => "42", "nama" => "Pendapatan Non-Operasional", "kode_kelas" => "4", "kode_kelompok" => "42", "kode_jenis" => null, "keterangan" => null],
+            ["nomor" => "421", "nama" => "Pendapatan Deviden", "kode_kelas" => "4", "kode_kelompok" => "42", "kode_jenis" => "421", "keterangan" => null],
+            ["nomor" => "422", "nama" => "Pendapatan Sewa", "kode_kelas" => "4", "kode_kelompok" => "42", "kode_jenis" => "422", "keterangan" => null],
+            ["nomor" => "5", "nama" => "BIAYA", "kode_kelas" => "5", "kode_kelompok" => null, "kode_jenis" => null, "keterangan" => null],
+            ["nomor" => "50", "nama" => "Beban Pokok Anggota", "kode_kelas" => "5", "kode_kelompok" => "50", "kode_jenis" => null, "keterangan" => null],
+            ["nomor" => "501", "nama" => "Beban Bunga Simpanan Anggota", "kode_kelas" => "5", "kode_kelompok" => "50", "kode_jenis" => "501", "keterangan" => null],
+            ["nomor" => "502", "nama" => "Beban Bunga Simpanan berjangka Anggota", "kode_kelas" => "5", "kode_kelompok" => "50", "kode_jenis" => "502", "keterangan" => null],
+            ["nomor" => "51", "nama" => "Beban Pokok Non-Anggota", "kode_kelas" => "5", "kode_kelompok" => "51", "kode_jenis" => null, "keterangan" => null],
+            ["nomor" => "511", "nama" => "Beban Bunga Simpanan Non-Anggota", "kode_kelas" => "5", "kode_kelompok" => "51", "kode_jenis" => "511", "keterangan" => null],
+            ["nomor" => "512", "nama" => "Beban Bunga Simpanan berjangka Non-Anggota", "kode_kelas" => "5", "kode_kelompok" => "51", "kode_jenis" => "512", "keterangan" => null],
+            ["nomor" => "52", "nama" => "Beban Operasional", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => null, "keterangan" => null],
+            ["nomor" => "521", "nama" => "Beban Bunga Pinjaman", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "521", "keterangan" => null],
+            ["nomor" => "522", "nama" => "Beban Provisi Pinjaman", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "522", "keterangan" => null],
+            ["nomor" => "523", "nama" => "Beban Administrasi Pinjaman", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "523", "keterangan" => null],
+            ["nomor" => "524", "nama" => "Beban Gaji Karyawan", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "524", "keterangan" => null],
+            ["nomor" => "525", "nama" => "Biaya Asuransi", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "525", "keterangan" => null],
+            ["nomor" => "526", "nama" => "Biaya Pemakaian Perlengkapan Kantor", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "526", "keterangan" => null],
+            ["nomor" => "527", "nama" => "Biaya Air, Listrik dan Telepon", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "527", "keterangan" => null],
+            ["nomor" => "528", "nama" => "Biaya Pemeliharaan Gedung", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "528", "keterangan" => null],
+            ["nomor" => "529", "nama" => "Biaya Pemeliharaan Kendaraan", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "529", "keterangan" => null],
+            ["nomor" => "530", "nama" => "Biaya Pemeliharaan Peralatan Kantor", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "530", "keterangan" => null],
+            ["nomor" => "531", "nama" => "Biaya Kantor Lainnya", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "531", "keterangan" => null],
+            ["nomor" => "532", "nama" => "Beban penghapusan Pinjaman", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "532", "keterangan" => null],
+            ["nomor" => "533", "nama" => "Beban Penyusutan Gedung", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "533", "keterangan" => null],
+            ["nomor" => "534", "nama" => "Beban Penyusutan Kendaraan", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "534", "keterangan" => null],
+            ["nomor" => "535", "nama" => "Beban Penyusutan Peralatan Kantor", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "535", "keterangan" => null],
+            ["nomor" => "536", "nama" => "Macam-macam Biaya", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "536", "keterangan" => null],
+            ["nomor" => "537", "nama" => "Beban Penyusunan Anggaran", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "537", "keterangan" => null],
+            ["nomor" => "538", "nama" => "Beban Rapat Anggota", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "538", "keterangan" => null],
+            ["nomor" => "539", "nama" => "Beban Pembinaan dan Penyuluhan Anggota", "kode_kelas" => "5", "kode_kelompok" => "52", "kode_jenis" => "539", "keterangan" => null],
+            ["nomor" => "54", "nama" => "Beban Non - Operasional", "kode_kelas" => "5", "kode_kelompok" => "54", "kode_jenis" => null, "keterangan" => null],
+            ["nomor" => "541", "nama" => "Beban atas Penyertaan (untuk KSP)", "kode_kelas" => "5", "kode_kelompok" => "54", "kode_jenis" => "541", "keterangan" => null],
+            ["nomor" => "542", "nama" => "Rugi Penjualan Aset Tetap", "kode_kelas" => "5", "kode_kelompok" => "54", "kode_jenis" => "542", "keterangan" => null]
+        ];
+
+        // Format data untuk insert batch agar sesuai kolom database
+        $insertData = [];
+        foreach ($rawData as $d) {
+            
+            // Mapping Kategori
+            $categoryMap = [
+                '1' => 'ASET',
+                '2' => 'KEWAJIBAN',
+                '3' => 'MODAL',
+                '4' => 'PENDAPATAN',
+                '5' => 'BIAYA'
+            ];
+            $catName = $categoryMap[$d['kode_kelas']] ?? 'LAINNYA';
+
+            // Logika Auto-Normal Balance
+            $normalBalance = in_array($d['kode_kelas'], ['1', '5']) ? 'debit' : 'credit';
+            
+            // Pengecualian Akun Kontra (Akumulasi Penyusutan & Penyisihan Piutang)
+            if (str_contains(strtolower($d['nama']), 'akumulasi') || str_contains(strtolower($d['nama']), 'penyisihan')) {
+                $normalBalance = 'credit';
+            }
+
+            $insertData[] = [
+                'code' => $d['nomor'],
+                'name' => $d['nama'],
+                'class_code' => $d['kode_kelas'],
+                'group_code' => $d['kode_kelompok'],
+                'type_code' => $d['kode_jenis'],
+                'category' => $catName,
+                'normal_balance' => $normalBalance,
+                'description' => $d['keterangan'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        DB::table('chart_of_accounts')->insert($insertData);
+    }
+}
