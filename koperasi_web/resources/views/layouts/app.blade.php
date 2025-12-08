@@ -15,6 +15,7 @@
   <link rel="manifest" href="{{ asset('assets/favicon/site.webmanifest') }}" />
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
   
   @stack('styles')
 
@@ -27,13 +28,14 @@
       background-color: #f8fafc;
     }
     .sidebar {
-      width: 240px;
+      width: 280px; 
       min-height: 100vh;
       background-color: #f1f5f9;
       padding: 1rem 0;
       position: fixed;
       top: 0;
       left: 0;
+      z-index: 1000; 
     }
     .sidebar .nav-link {
       color: #334155;
@@ -48,8 +50,8 @@
       border-left: 4px solid #0d6efd;
     }
     .main-content {
-      margin-left: 240px;
-      padding: 1.5rem;
+      margin-left: 280px; 
+      padding: 1.5rem; 
     }
 
     .steps {
@@ -207,5 +209,6 @@
   </script>
 
   @stack('scripts')
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

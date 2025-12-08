@@ -2,16 +2,12 @@
 
 @section('page_title', 'Laporan Sisa Hasil Usaha')
 
+{{-- HELPER FORMAT ANGKA (Tetap sama, Negatif pakai Kurung) --}}
 @php
     if (!function_exists('nF')) {
         function nF($number) {
-            // 1. Jika angka 0, tampilkan strip "-"
             if ($number == 0) return '-';
-            // 2. Jika angka NEGATIF, gunakan format kurung (X.XXX)
-            if ($number < 0) {
-                return '(' . number_format(abs($number), 0, ',', '.') . ')';
-            }
-            // 3. Jika angka POSITIF, format biasa X.XXX
+            if ($number < 0) return '(' . number_format(abs($number), 0, ',', '.') . ')';
             return number_format($number, 0, ',', '.');
         }
     }
@@ -24,24 +20,31 @@
     <form action="{{ route('shu-report') }}" method="GET" class="mb-4 no-print">
         <div class="d-flex justify-content-between align-items-center">
             
-            {{-- Filter Kiri --}}
+            {{-- Filter Kiri (Pilih Periode) --}}
             <div class="d-flex align-items-center gap-2">
-                <div class="input-group" style="width: 320px;">
-                    <span class="input-group-text bg-white text-muted border-end-0"><i class="bi bi-calendar-event"></i></span>
+                <div class="input-group" style="width: auto;">
+                    <span class="input-group-text bg-white text-muted border-end-0"><i class="bi bi-calendar-week"></i></span>
                     
-                    {{-- Select Tahun Awal --}}
-                    <select name="start_year" class="form-select border-start-0 ps-0 text-center focus-ring-none">
-                        @for($y = date('Y'); $y >= 2020; $y--)
-                            <option value="{{ $y }}" {{ $startYear == $y ? 'selected' : '' }}>{{ $y }}</option>
-                        @endfor
+                    {{-- Select Bulan --}}
+                    <select name="month" class="form-select border-start-0 text-center" style="width: 160px;">
+                        <option value="all" {{ $selectedMonth == 'all' ? 'selected' : '' }}>Setahun Penuh</option>
+                        @foreach(range(1, 12) as $m)
+                            @php 
+                                // FIX: Tambahkan ->locale('id') sebelum translatedFormat
+                                $mName = \Carbon\Carbon::createFromDate(null, $m, 1)
+                                    ->locale('id') 
+                                    ->translatedFormat('F'); 
+                            @endphp
+                            <option value="{{ $m }}" {{ $selectedMonth == $m ? 'selected' : '' }}>{{ $mName }}</option>
+                        @endforeach
                     </select>
+
+                    <span class="input-group-text bg-light text-secondary small px-3"></span>
                     
-                    <span class="input-group-text bg-light text-secondary small px-3">s/d</span>
-                    
-                    {{-- Select Tahun Akhir --}}
-                    <select name="end_year" class="form-select text-center cursor-pointer">
-                        @for($i = date('Y'); $i >= 2020; $i--)
-                            <option value="{{ $i }}" {{ request('end_year', date('Y')) == $i ? 'selected' : '' }}>{{ $i }}</option>
+                    {{-- Select Tahun --}}
+                    <select name="year" class="form-select text-center cursor-pointer" style="width: 160px;">
+                        @for($y = date('Y'); $y >= 2020; $y--)
+                            <option value="{{ $y }}" {{ $selectedYear == $y ? 'selected' : '' }}>{{ $y }}</option>
                         @endfor
                     </select>
                 </div>
@@ -49,15 +52,11 @@
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-funnel me-1"></i> Tampilkan
                 </button>
-                
-                <small class="text-muted ms-2 fst-italic d-flex align-items-center">
-                    <i class="bi bi-info-circle me-1"></i> Maks. 3 Tahun
-                </small>
             </div>
 
             {{-- Tombol Kanan --}}
             <div class="d-flex gap-2">
-                <a href="{{ route('shu-report.export', ['start_year' => $startYear, 'end_year' => $endYear]) }}" class="btn btn-primary text-white">
+                <a href="{{ route('shu-report.export', ['year' => $selectedYear, 'month' => $selectedMonth]) }}" class="btn btn-primary text-white">
                     <i class="bi bi-download me-1"></i> Unduh File CSV
                 </a>
             </div>
@@ -72,10 +71,9 @@
                 {{-- HEADER TABEL --}}
                 <thead class="fw-bold text-uppercase" style="font-size: 1rem;">
                     <tr class="text-center align-middle">
-                        <th class="text-start ps-4 py-3" style="width: 50%">Uraian</th>
-                        @foreach($years as $year)
-                            <th class="py-3" style="width: 150px;">{{ $year }}</th>
-                        @endforeach
+                        <th class="text-start ps-4 py-3" style="width: 60%">Uraian</th>
+                        {{-- Kolom Periode Dinamis --}}
+                        <th class="py-3" style="width: 40%;">{{ $periodLabel }}</th>
                     </tr>
                 </thead>
 
@@ -83,63 +81,61 @@
                     
                     {{-- 1. PARTISIPASI ANGGOTA --}}
                     <tr>
-                        <td colspan="{{ count($years) + 1 }}" class="fw-bold bg-light ps-3 py-2 text-uppercase" style="font-size: 1rem; letter-spacing: 0.5px;">
+                        <td colspan="2" class="fw-bold bg-light ps-3 py-2 text-uppercase" style="font-size: 1rem; letter-spacing: 0.5px;">
                             Partisipasi Anggota
                         </td>
                     </tr>
                     <tr>
                         <td class="bg-white ps-4 border-bottom-0">Pendapatan Bunga</td> 
-                        @foreach($years as $y) <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($report[$y]['partisipasi_bunga']) }}</td> @endforeach
+                        <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($reportData['partisipasi_bunga']) }}</td>
                     </tr>
                     <tr>
                         <td class="bg-white ps-4 border-bottom-0">Pendapatan Usaha Lain</td>
-                        @foreach($years as $y) <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($report[$y]['partisipasi_lain']) }}</td> @endforeach
+                        <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($reportData['partisipasi_lain']) }}</td>
                     </tr>
                     <tr style="background-color: #fafafa;">
                         <td class="ps-3 fw-bold border-top">Jumlah Partisipasi Anggota</td>
-                        @foreach($years as $y) <td class="text-end pe-4 fw-bold border-top">{{ nF($report[$y]['total_partisipasi']) }}</td> @endforeach
+                        <td class="text-end pe-4 fw-bold border-top">{{ nF($reportData['total_partisipasi']) }}</td>
                     </tr>
 
                     {{-- 2. BEBAN USAHA --}}
                     <tr>
-                        <td colspan="{{ count($years) + 1 }}" class="fw-bold bg-light ps-3 py-2 text-uppercase mt-2" style="font-size: 1rem; letter-spacing: 0.5px;">
+                        <td colspan="2" class="fw-bold bg-light ps-3 py-2 text-uppercase mt-2" style="font-size: 1rem; letter-spacing: 0.5px;">
                             Beban Usaha
                         </td>
                     </tr>
                     <tr>
                         <td class="bg-white ps-4 border-bottom-0">Beban Bunga</td>
-                        @foreach($years as $y) <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($report[$y]['beban_bunga']) }}</td> @endforeach
+                        <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($reportData['beban_bunga']) }}</td>
                     </tr>
                     <tr>
                         <td class="bg-white ps-4 border-bottom-0">Beban Penyisihan</td>
-                        @foreach($years as $y) <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($report[$y]['beban_penyisihan']) }}</td> @endforeach
+                        <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($reportData['beban_penyisihan']) }}</td>
                     </tr>
                     <tr>
                         <td class="bg-white ps-4 border-bottom-0">Beban Kepegawaian</td>
-                        @foreach($years as $y) <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($report[$y]['beban_pegawai']) }}</td> @endforeach
+                        <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($reportData['beban_pegawai']) }}</td>
                     </tr>
                     <tr>
                         <td class="bg-white ps-4 border-bottom-0">Beban Administrasi dan Umum</td>
-                        @foreach($years as $y) <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($report[$y]['beban_admin']) }}</td> @endforeach
+                        <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($reportData['beban_admin']) }}</td>
                     </tr>
                     <tr>
                         <td class="bg-white ps-4 border-bottom-0">Beban Penyusutan dan Amortisasi</td>
-                        @foreach($years as $y) <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($report[$y]['beban_penyusutan']) }}</td> @endforeach
+                        <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($reportData['beban_penyusutan']) }}</td>
                     </tr>
                     <tr>
                         <td class="bg-white ps-4 border-bottom-0">Beban Usaha Lain</td>
-                        @foreach($years as $y) <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($report[$y]['beban_usaha_lain']) }}</td> @endforeach
+                        <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($reportData['beban_usaha_lain']) }}</td>
                     </tr>
                     
                     {{-- Total Beban --}}
                     <tr style="background-color: #fafafa;">
                         <td class="ps-3 fw-bold border-top">Jumlah Beban Usaha</td>
-                        {{-- Logika: Jika total beban positif, tampilkan dalam kurung --}}
-                        @foreach($years as $y) 
-                            <td class="text-end pe-4 fw-bold border-top">
-                                {{ nF($report[$y]['total_beban_usaha'] * -1) }}
-                            </td> 
-                        @endforeach
+                        <td class="text-end pe-4 fw-bold border-top">
+                            {{-- Convert to negative for display logic if needed, otherwise just display --}}
+                            {{ nF($reportData['total_beban_usaha'] * -1) }}
+                        </td> 
                     </tr>
 
                     {{-- 3. SHU BRUTO --}}
@@ -147,66 +143,60 @@
                         <td class="ps-3 py-3 fw-bold text-uppercase text-dark bg-white border-top border-bottom border-2">
                             Sisa Hasil Usaha Bruto
                         </td>
-                        @foreach($years as $y) 
-                            <td class="text-end pe-4 py-3 fw-bold text-dark bg-white border-top border-bottom border-2 fs-6">
-                                {{ nF($report[$y]['shu_bruto']) }}
-                            </td> 
-                        @endforeach
+                        <td class="text-end pe-4 py-3 fw-bold text-dark bg-white border-top border-bottom border-2 fs-6">
+                            {{ nF($reportData['shu_bruto']) }}
+                        </td> 
                     </tr>
                     <tr>
                         <td class="bg-white ps-4 border-bottom-0">Hasil Investasi</td>
-                        @foreach($years as $y) <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($report[$y]['hasil_investasi']) }}</td> @endforeach
+                        <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($reportData['hasil_investasi']) }}</td>
                     </tr>
                     <tr>
                         <td class="bg-white ps-4 border-bottom-0">Beban Perkoperasian</td>
-                        @foreach($years as $y) <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($report[$y]['beban_perkoperasian']) }}</td> @endforeach
+                        <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($reportData['beban_perkoperasian']) }}</td>
                     </tr>
 
-                    {{-- 4. HASIL INVESTASI & PERKOPERASIAN --}}
+                    {{-- 4. PENDAPATAN & BEBAN LAIN --}}
                     <tr>
-                        <td colspan="{{ count($years) + 1 }}" class="fw-bold bg-light ps-3 py-2 text-uppercase mt-2" style="font-size: 1rem; letter-spacing: 0.5px;">
+                        <td colspan="2" class="fw-bold bg-light ps-3 py-2 text-uppercase mt-2" style="font-size: 1rem; letter-spacing: 0.5px;">
                             Pendapatan & Beban Lain
                         </td>
                     </tr>
-
-                    {{-- 5. LAIN-LAIN --}}
                     <tr>
                         <td class="bg-white ps-4 border-bottom-0">Pendapatan Lain</td>
-                        @foreach($years as $y) <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($report[$y]['pendapatan_lain']) }}</td> @endforeach
+                        <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($reportData['pendapatan_lain']) }}</td>
                     </tr>
                     <tr>
                         <td class="bg-white ps-4 border-bottom-0">Beban Lain</td>
-                        @foreach($years as $y) <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($report[$y]['beban_lain']) }}</td> @endforeach
+                        <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($reportData['beban_lain']) }}</td>
                     </tr>
 
                     {{-- 6. SHU SEBELUM PAJAK --}}
                     <tr>
                         <td class="bg-white ps-4 border-bottom-0">Sisa Hasil Usaha Sebelum Pajak</td>
-                        @foreach($years as $y) <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($report[$y]['shu_sebelum_pajak']) }}</td> @endforeach
+                        <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($reportData['shu_sebelum_pajak']) }}</td>
                     </tr>
                     <tr>
                         <td class="bg-white ps-4 border-bottom-0">Beban Pajak Penghasilan</td>
-                        @foreach($years as $y) <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($report[$y]['pajak']) }}</td> @endforeach
+                        <td class="bg-white text-end pe-4 border-bottom-0">{{ nF($reportData['pajak']) }}</td>
                     </tr>
                     
                     {{-- 7. SHU NETO (FINAL) --}}
                     <tr class="bg-light border-top border-2">
                         <td class="text-uppercase fw-bold ps-3 py-3 fs-6">Sisa Hasil Usaha Neto</td>
-                        @foreach($years as $y) 
-                            <td class="text-end fw-bold pe-4 py-3 fs-6">
-                                {{ nF($report[$y]['shu_neto']) }}
-                            </td> 
-                        @endforeach
+                        <td class="text-end fw-bold pe-4 py-3 fs-6">
+                            {{ nF($reportData['shu_neto']) }}
+                        </td> 
                     </tr>
 
                     {{-- 8. PENGHASILAN KOMPREHENSIF --}}
                      <tr>
                         <td class="bg-white ps-4 border-bottom-0 text-muted">Penghasilan Komprehensif Lain</td>
-                        @foreach($years as $y) <td class="bg-white text-end pe-4 text-muted border-bottom-0">-</td> @endforeach
+                        <td class="bg-white text-end pe-4 text-muted border-bottom-0">-</td>
                     </tr>
                      <tr class="border-top">
                         <td class="ps-3 text-uppercase fw-bold text-dark py-3 fs-6">Penghasilan Komprehensif</td>
-                        @foreach($years as $y) <td class="text-end pe-4 fw-bold text-dark py-3 fs-6">{{ nF($report[$y]['shu_neto']) }}</td> @endforeach
+                        <td class="text-end pe-4 fw-bold text-dark py-3 fs-6">{{ nF($reportData['shu_neto']) }}</td>
                     </tr>
 
                 </tbody>
@@ -218,6 +208,8 @@
 
 @push('styles')
 <style>
+    body { background-color: #f8fafc !important; }
+
     .table thead th {
         background-color: #EDEDED !important;
         border-bottom-width: 2px;

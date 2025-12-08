@@ -12,55 +12,55 @@ class FinancialPositionReportController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Filter Tahun
-        $currentYear = date('Y');
-        $startYear = $request->input('start_year', $currentYear);
-        $endYear   = $request->input('end_year', $currentYear);
+        // 1. Ambil Input Filter
+        $selectedYear  = $request->input('year', date('Y'));
+        $selectedMonth = $request->input('month', 'all'); 
 
-        // Validasi
-        if ($endYear < $startYear) $endYear = $startYear;
-        if ($endYear - $startYear > 2) $endYear = $startYear + 2;
-
-        $years = range($startYear, $endYear);
-        $report = [];
-
-        foreach ($years as $year) {
-            $report[$year] = $this->calculateBalanceData($year);
+        // 2. Tentukan Label Periode
+        if ($selectedMonth == 'all') {
+            $periodLabel = "Tahun " . $selectedYear;
+        } else {
+            $dt = \Carbon\Carbon::createFromDate($selectedYear, (int)$selectedMonth, 1);
+            $periodLabel = $dt->locale('id')->translatedFormat('F Y');
         }
 
-        return view('dashboard.financial-position-report', compact('years', 'report', 'startYear', 'endYear'));
+        // 3. Hitung Data (Sekarang fungsi ini menerima bulan)
+        $reportData = $this->calculateBalanceData($selectedYear, $selectedMonth);
+
+        return view('dashboard.financial-position-report', compact('reportData', 'selectedYear', 'selectedMonth', 'periodLabel'));
     }
 
     public function exportCsv(Request $request)
     {
-        // 1. Filter Tahun
-        $currentYear = date('Y');
-        $startYear = $request->input('start_year', $currentYear);
-        $endYear   = $request->input('end_year', $currentYear);
+        // 1. Ambil Filter (Harus sama dengan index agar hasil download sesuai tampilan)
+        $selectedYear  = $request->input('year', date('Y'));
+        $selectedMonth = $request->input('month', 'all');
 
-        if ($endYear < $startYear) $endYear = $startYear;
-        if ($endYear - $startYear > 2) $endYear = $startYear + 2;
-
-        $years = range($startYear, $endYear);
-
-        // 2. Hitung Data
-        $report = [];
-        foreach ($years as $year) {
-            $report[$year] = $this->calculateBalanceData($year);
+        // Tentukan Nama File & Header Kolom
+        if ($selectedMonth == 'all') {
+            $periodLabel = "Tahun " . $selectedYear;
+            $fileName = 'Laporan_Posisi_Keuangan_Tahun_' . $selectedYear . '.csv';
+        } else {
+            $dt = \Carbon\Carbon::createFromDate($selectedYear, (int)$selectedMonth, 1);
+            $periodLabel = $dt->locale('id')->translatedFormat('F Y');
+            $monthName = $dt->locale('id')->translatedFormat('F');
+            $fileName = 'Laporan_Posisi_Keuangan_' . $monthName . '_' . $selectedYear . '.csv';
         }
 
-        // 3. Setup CSV
-        $fileName = 'Laporan_Posisi_Keuangan_' . $startYear . '-' . $endYear . '.csv';
+        // 2. Hitung Data
+        $data = $this->calculateBalanceData($selectedYear, $selectedMonth);
 
-        $response = new StreamedResponse(function () use ($years, $report) {
+        // 3. Setup CSV Streaming
+        $response = new StreamedResponse(function () use ($data, $periodLabel) {
             $handle = fopen('php://output', 'w');
 
-            $header = ['URAIAN'];
-            foreach ($years as $year) {
-                $header[] = $year;
-            }
-            fputcsv($handle, $header);
+            // Header Laporan
+            fputcsv($handle, ['LAPORAN POSISI KEUANGAN']);
+            fputcsv($handle, [$periodLabel]);
+            fputcsv($handle, []);
+            fputcsv($handle, ['URAIAN', 'NILAI (Rp)']);
 
+            // Definisi Baris
             $rows = [
                 ['ASET', null, true],
                 ['Kas dan setara kas', 'kas_setara_kas', false],
@@ -105,22 +105,18 @@ class FinancialPositionReportController extends Controller
                 $key   = $rowDef[1];
                 $isHeader = $rowDef[2];
 
-                $csvRow = [$label];
-
                 if ($isHeader) {
-                    foreach ($years as $y) $csvRow[] = '';
+                    fputcsv($handle, [strtoupper($label), '']);
                 } else {
-                    foreach ($years as $y) {
-                        $val = $report[$y][$key] ?? 0;
-                        
-                        if (in_array($key, ['penyisihan_pinjaman', 'akumulasi_penyusutan', 'akumulasi_amortisasi'])) {
-                            $val = -abs($val);
-                        }
-                        
-                        $csvRow[] = $val;
+                    $val = $data[$key] ?? 0;
+                    
+                    // Logic khusus CSV: Akun kontra dibuat negatif agar user paham itu mengurangi
+                    if (in_array($key, ['penyisihan_pinjaman', 'akumulasi_penyusutan', 'akumulasi_amortisasi'])) {
+                        $val = -abs($val);
                     }
+                    
+                    fputcsv($handle, [$label, $val]);
                 }
-                fputcsv($handle, $csvRow);
             }
             fclose($handle);
         });
@@ -131,14 +127,20 @@ class FinancialPositionReportController extends Controller
         return $response;
     }
 
-    private function calculateBalanceData($year)
+    private function calculateBalanceData($year, $month = 'all')
     {
-        $getBalance = function ($codes, $type = 'debit') use ($year) {
+        $getBalance = function ($codes, $type = 'debit') use ($year, $month) {
             if (!is_array($codes)) $codes = [$codes];
+            
             $total = 0;
             foreach ($codes as $code) {
                 $query = LedgerEntry::whereYear('date', $year) 
                     ->where('account_code', 'like', $code . '%');
+
+                // Berbeda dengan SHU yang "=" bulan ini, Neraca harus "<="
+                if ($month != 'all') {
+                    $query->whereMonth('date', '<=', (int)$month); 
+                }
                 
                 if ($type === 'debit') {
                     $total += $query->sum(DB::raw('debit - credit'));
@@ -152,61 +154,47 @@ class FinancialPositionReportController extends Controller
         // ==========================================
         // 1. ASET (Aktiva)
         // ==========================================
-        
-        // Aset Lancar
-        $kas_setara_kas     = $getBalance(['101', '102', '103', '104', '105', '108'], 'debit');
-        $piutang_bunga      = $getBalance('111', 'debit');
-        $pinjaman_anggota   = $getBalance('109', 'debit');
-        // Akun Kontra (Penyisihan): Saldo Normal Kredit, kita ambil nilai positifnya
+        $kas_setara_kas      = $getBalance(['101', '102', '103', '104', '105', '108'], 'debit');
+        $piutang_bunga       = $getBalance('111', 'debit');
+        $pinjaman_anggota    = $getBalance('109', 'debit');
         $penyisihan_pinjaman = $getBalance('113', 'credit'); 
+        $pinjaman_koperasi_lain = $getBalance(['110', '112'], 'debit');
 
-        $pinjaman_koperasi_lain = $getBalance(['110', '112'], 'debit'); // Non-anggota & Lain2
-
-        // Aset Tetap
-        $aset_tetap         = $getBalance(['121', '122', '123', '124'], 'debit');
-        // Akun Kontra (Akumulasi Penyusutan): Saldo Normal Kredit
+        $aset_tetap           = $getBalance(['121', '122', '123', '124'], 'debit');
         $akumulasi_penyusutan = $getBalance(['125', '126', '127'], 'credit');
 
-        // Aset Lain
-        $aset_tak_berwujud  = $getBalance('131', 'debit'); // Biaya Pra-Operasi
-        $akumulasi_amortisasi = 0; // Belum ada di COA
-        $aset_lain          = $getBalance(['114', '115', '116', '117', '118'], 'debit');
+        $aset_tak_berwujud    = $getBalance('131', 'debit');
+        $akumulasi_amortisasi = 0; 
+        $aset_lain            = $getBalance(['114', '115', '116', '117', '118'], 'debit');
 
-        // TOTAL ASET = (Aset Debit) - (Akun Kontra Kredit)
         $total_aset = ($kas_setara_kas + $piutang_bunga + $pinjaman_anggota + $pinjaman_koperasi_lain + 
                        $aset_tetap + $aset_tak_berwujud + $aset_lain) 
                        - ($penyisihan_pinjaman + $akumulasi_penyusutan + $akumulasi_amortisasi);
 
-
         // ==========================================
         // 2. LIABILITAS (Kewajiban)
         // ==========================================
-        // Saldo Normal: KREDIT
-        
-        $utang_bunga            = $getBalance('203', 'credit'); // Biaya YMH dibayar
-        $simpanan_anggota       = $getBalance(['201', '205'], 'credit'); // Sukarela & Berjangka
-        $simpanan_koperasi_lain = $getBalance(['202', '206'], 'credit'); // Non Anggota
-        $utang_pinjaman         = $getBalance(['210', '211'], 'credit'); // Pinjaman diterima
-        $liabilitas_imbalan_kerja = 0; // Belum ada akun spesifik
-        $liabilitas_lain        = $getBalance('204', 'credit'); // Sewa diterima dimuka
+        $utang_bunga             = $getBalance('203', 'credit');
+        $simpanan_anggota        = $getBalance(['201', '205'], 'credit');
+        $simpanan_koperasi_lain  = $getBalance(['202', '206'], 'credit');
+        $utang_pinjaman          = $getBalance(['210', '211'], 'credit');
+        $liabilitas_imbalan_kerja= 0; 
+        $liabilitas_lain         = $getBalance('204', 'credit');
 
         $total_liabilitas = $utang_bunga + $simpanan_anggota + $simpanan_koperasi_lain + 
                             $utang_pinjaman + $liabilitas_imbalan_kerja + $liabilitas_lain;
 
-
         // ==========================================
         // 3. EKUITAS (Modal)
         // ==========================================
-        // Saldo Normal: KREDIT
-
         $ekuitas_simpanan_pokok = $getBalance('301', 'credit');
         $ekuitas_simpanan_wajib = $getBalance('302', 'credit');
-        $ekuitas_simpanan_lain  = $getBalance(['303', '304', '305'], 'credit'); // Khusus, Disetor, Tambahan
+        $ekuitas_simpanan_lain  = $getBalance(['303', '304', '305'], 'credit');
         $ekuitas_sumbangan      = $getBalance('306', 'credit');
         $ekuitas_cadangan       = $getBalance(['307', '308'], 'credit');
 
-        // HITUNG SHU TAHUN BERJALAN (Dinamis: Pendapatan - Beban)
-        // Agar Neraca Balance walau belum tutup buku
+        // HITUNG SHU TAHUN BERJALAN 
+        // Logic: Pendapatan - Beban
         $total_pendapatan_th_ini = $getBalance('4', 'credit');
         $total_beban_th_ini      = $getBalance('5', 'debit');
         $ekuitas_shu_berjalan    = $total_pendapatan_th_ini - $total_beban_th_ini;
@@ -214,12 +202,10 @@ class FinancialPositionReportController extends Controller
         $total_ekuitas = $ekuitas_simpanan_pokok + $ekuitas_simpanan_wajib + $ekuitas_simpanan_lain + 
                          $ekuitas_sumbangan + $ekuitas_cadangan + $ekuitas_shu_berjalan;
 
-
         // TOTAL PASIVA
         $total_liabilitas_ekuitas = $total_liabilitas + $total_ekuitas;
 
         return [
-            // Aset
             'kas_setara_kas'        => $kas_setara_kas,
             'piutang_bunga'         => $piutang_bunga,
             'pinjaman_anggota'      => $pinjaman_anggota,
@@ -232,7 +218,6 @@ class FinancialPositionReportController extends Controller
             'aset_lain'             => $aset_lain,
             'total_aset'            => $total_aset,
 
-            // Liabilitas
             'utang_bunga'             => $utang_bunga,
             'simpanan_anggota'        => $simpanan_anggota,
             'simpanan_koperasi_lain'  => $simpanan_koperasi_lain,
@@ -241,7 +226,6 @@ class FinancialPositionReportController extends Controller
             'liabilitas_lain'         => $liabilitas_lain,
             'total_liabilitas'        => $total_liabilitas,
 
-            // Ekuitas
             'ekuitas_simpanan_pokok'  => $ekuitas_simpanan_pokok,
             'ekuitas_simpanan_wajib'  => $ekuitas_simpanan_wajib,
             'ekuitas_simpanan_lain'   => $ekuitas_simpanan_lain,

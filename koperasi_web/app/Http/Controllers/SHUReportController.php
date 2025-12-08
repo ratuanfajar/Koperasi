@@ -3,62 +3,64 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\LedgerEntry;
+use App\Models\LedgerEntry; // Pastikan model ini benar
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Carbon\Carbon;
 
 class SHUReportController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Filter Tahun
-        $currentYear = date('Y');
-        $startYear = $request->input('start_year', $currentYear);
-        $endYear   = $request->input('end_year', $currentYear);
+        // 1. Ambil Input Filter
+        $selectedYear  = $request->input('year', date('Y'));
+        $selectedMonth = $request->input('month', 'all'); 
 
-        if ($endYear < $startYear) $endYear = $startYear;
-        if ($endYear - $startYear > 2) $endYear = $startYear + 2;
-
-        $years = range($startYear, $endYear);
-        $report = [];
-
-        foreach ($years as $year) {
-            $report[$year] = $this->calculateShuData($year);
+        // 2. Tentukan Label Periode
+        if ($selectedMonth == 'all') {
+            $periodLabel = "Tahun " . $selectedYear;
+        } else {
+            $dt = \Carbon\Carbon::createFromDate($selectedYear, (int)$selectedMonth, 1);
+            $periodLabel = $dt->locale('id')->translatedFormat('F Y');
         }
 
-        return view('dashboard.shu-report', compact('years', 'report', 'startYear', 'endYear'));
+        // 3. Hitung Data (Sekarang fungsi ini menerima bulan)
+        $reportData = $this->calculateShuData($selectedYear, $selectedMonth);
+
+        return view('dashboard.shu-report', compact('reportData', 'selectedYear', 'selectedMonth', 'periodLabel'));
     }
 
     public function exportCsv(Request $request)
     {
-        // 1. Ambil Filter Tahun (Sama seperti index)
-        $currentYear = date('Y');
-        $startYear = $request->input('start_year', $currentYear);
-        $endYear   = $request->input('end_year', $currentYear);
+        // 1. Ambil Filter (Harus sama dengan index agar hasil download sesuai tampilan)
+        $selectedYear  = $request->input('year', date('Y'));
+        $selectedMonth = $request->input('month', 'all');
 
-        if ($endYear < $startYear) $endYear = $startYear;
-        if ($endYear - $startYear > 2) $endYear = $startYear + 2;
-
-        $years = range($startYear, $endYear);
-
-        // 2. Hitung Data (Reuse fungsi private)
-        $report = [];
-        foreach ($years as $year) {
-            $report[$year] = $this->calculateShuData($year);
+        // Tentukan Nama File & Header Kolom
+        if ($selectedMonth == 'all') {
+            $periodLabel = "Tahun " . $selectedYear;
+            $fileName = 'Laporan_SHU_Tahun_' . $selectedYear . '.csv';
+        } else {
+            $dt = \Carbon\Carbon::createFromDate($selectedYear, (int)$selectedMonth, 1);
+            $periodLabel = $dt->locale('id')->translatedFormat('F Y');
+            $monthName = $dt->locale('id')->translatedFormat('F');
+            $fileName = 'Laporan_SHU_' . $monthName . '_' . $selectedYear . '.csv';
         }
 
-        // 3. Setup CSV Streaming
-        $fileName = 'Laporan_SHU_' . $startYear . '-' . $endYear . '.csv';
+        // 2. Hitung Data
+        $data = $this->calculateShuData($selectedYear, $selectedMonth);
 
-        $response = new StreamedResponse(function () use ($years, $report) {
+        // 3. Setup CSV Streaming
+        $response = new StreamedResponse(function () use ($data, $periodLabel) {
             $handle = fopen('php://output', 'w');
 
-            $header = ['URAIAN'];
-            foreach ($years as $year) {
-                $header[] = $year;
-            }
-            fputcsv($handle, $header);
+            // Header CSV
+            fputcsv($handle, ['LAPORAN SISA HASIL USAHA']);
+            fputcsv($handle, ['Periode', $periodLabel]);
+            fputcsv($handle, []); 
+            fputcsv($handle, ['URAIAN', 'NILAI (Rp)']);
 
+            // Definisi Baris
             $rows = [
                 ['PARTISIPASI ANGGOTA', null, true], 
                 ['Pendapatan Bunga', 'partisipasi_bunga', false],
@@ -76,7 +78,7 @@ class SHUReportController extends Controller
 
                 ['SISA HASIL USAHA BRUTO', 'shu_bruto', false],
 
-                ['', null, true], 
+                ['', null, true], // Spacer
                 ['Hasil Investasi', 'hasil_investasi', false],
                 ['Beban Perkoperasian (RAT & Pendidikan)', 'beban_perkoperasian', false],
 
@@ -95,18 +97,12 @@ class SHUReportController extends Controller
                 $key   = $rowDef[1];
                 $isHeader = $rowDef[2];
 
-                $csvRow = [$label];
-
                 if ($isHeader) {
-                    foreach ($years as $y) $csvRow[] = '';
+                    fputcsv($handle, [strtoupper($label), '']);
                 } else {
-                    foreach ($years as $y) {
-                        $val = $report[$y][$key] ?? 0;
-                        $csvRow[] = $val; 
-                    }
+                    $val = $data[$key] ?? 0;
+                    fputcsv($handle, [$label, $val]); 
                 }
-
-                fputcsv($handle, $csvRow);
             }
 
             fclose($handle);
@@ -118,9 +114,9 @@ class SHUReportController extends Controller
         return $response;
     }
 
-    private function calculateShuData($year)
+    private function calculateShuData($year, $month = 'all')
     {
-        $getBalance = function ($codes, $type = 'credit') use ($year) {
+        $getBalance = function ($codes, $type = 'credit') use ($year, $month) {
             if (!is_array($codes)) $codes = [$codes];
 
             $total = 0;
@@ -128,12 +124,14 @@ class SHUReportController extends Controller
                 $query = LedgerEntry::whereYear('date', $year) 
                     ->where('account_code', 'like', $code . '%');
                 
-                // Jika Pendapatan (Saldo Normal Kredit): Kredit - Debit
+                // FILTER BULAN DITAMBAHKAN
+                if ($month != 'all') {
+                    $query->whereMonth('date', $month);
+                }
+                
                 if ($type === 'credit') {
                     $total += $query->sum(DB::raw('credit - debit'));
-                } 
-                // Jika Beban (Saldo Normal Debit): Debit - Kredit
-                else {
+                } else {
                     $total += $query->sum(DB::raw('debit - credit'));
                 }
             }
@@ -222,7 +220,7 @@ class SHUReportController extends Controller
 
         // Pajak (Biasanya manual journal entry di akhir tahun, misal akun 59 atau similar)
         // Jika belum ada akun spesifik di COA, set 0 atau ambil dari akun perkiraan pajak
-        $pajak = 0; // $getBalance('59', 'debit');
+        $pajak = 0;
 
         $shu_neto = $shu_sebelum_pajak - $pajak;
 

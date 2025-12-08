@@ -39,6 +39,8 @@ Route::middleware('auth')->group(function () {
     // Jurnal Umum
     Route::get('/ledger', [LedgerController::class, 'index'])->name('ledger');
     Route::get('/ledger/export-csv', [LedgerController::class, 'exportCsv'])->name('ledger.export');
+    Route::put('/ledger/{transaction_code}', [LedgerController::class, 'update'])->name('ledger.update');
+    Route::delete('/ledger/{transaction_code}', [LedgerController::class, 'destroy'])->name('ledger.destroy');
 
     // Buku Besar Umum
     Route::get('/posting', [PostingController::class, 'index'])->name('posting');
