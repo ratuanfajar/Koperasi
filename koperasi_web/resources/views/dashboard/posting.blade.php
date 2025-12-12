@@ -70,11 +70,10 @@
                     {{-- HEADER TABEL --}}
                     <thead class="bg-light text-secondary fw-bold text-uppercase" style="font-size: 0.85rem;">
                         <tr class="text-center align-middle">
-                            <th style="width: 12%;">Tanggal</th>
-                            <th style="width: 15%;">No. Bukti</th>
-                            <th style="width: 30%;">Keterangan (Akun Lawan)</th>
-                            <th style="width: 13%;">Debit (Rp)</th>
-                            <th style="width: 13%;">Kredit (Rp)</th>
+                            <th style="width: 15%;">Tanggal</th>
+                            <th style="width: 35%;">Keterangan</th>
+                            <th style="width: 15%;">Debit (Rp)</th>
+                            <th style="width: 15%;">Kredit (Rp)</th>
                             <th style="width: 5%;">D/K</th>
                             <th style="width: 15%;">Saldo (Rp)</th>
                         </tr>
@@ -82,90 +81,89 @@
                     <tbody>
                         
                         @php 
-                            // Inisialisasi Saldo Berjalan
-                            $runningBalance = 0; 
+                            // Inisialisasi Saldo Berjalan (Dari Saldo Awal jika ada, tapi di sini dimulai dari 0 sesuai permintaan sebelumnya)
+                            $runningBalance = $saldoAwal ?? 0; 
                         @endphp
 
                         @forelse ($entries as $entry)
                             @php
-                                // 1. Hitung Saldo Global untuk Transaksi ini
-                                $runningBalance += ($entry->debit - $entry->credit);
-                                $posisi = ($runningBalance >= 0) ? 'D' : 'K';
-
-                                // 2. Cek apakah ada Splits (dari Controller)
-                                // Jika kosong (misal saldo awal), kita buat array dummy agar loop tetap jalan sekali
+                                // Cek apakah ada Splits
                                 $splits = $entry->splits->isEmpty() ? [null] : $entry->splits;
                                 $rowCount = count($splits);
                             @endphp
 
                             {{-- LOOPING RINCIAN (SPLIT ROWS) --}}
                             @foreach($splits as $index => $split)
+                                @php
+                                    // LOGIKA NOMINAL PER BARIS SPLIT
+                                    $lineDebit = 0;
+                                    $lineCredit = 0;
+
+                                    if ($split) {
+                                        if ($entry->debit > 0) {
+                                            // Jika Transaksi Utama DEBIT, ambil nilai dari split (biasanya kredit lawannya)
+                                            $lineDebit = ($split->credit > 0) ? $split->credit : $split->debit;
+                                        } else {
+                                            // Jika Transaksi Utama KREDIT
+                                            $lineCredit = ($split->debit > 0) ? $split->debit : $split->credit;
+                                        }
+                                    } else {
+                                        // Fallback single row (Penyesuaian/Saldo Awal)
+                                        $lineDebit = $entry->debit;
+                                        $lineCredit = $entry->credit;
+                                    }
+
+                                    // UPDATE SALDO BERJALAN PER BARIS (Unmerged Logic)
+                                    // Saldo bertambah jika Debit, berkurang jika Kredit (Asumsi Akun Normal Debit)
+                                    // Sesuaikan logika ini jika akun normal kredit (Liabilitas/Ekuitas/Pendapatan)
+                                    // Namun untuk tampilan umum ledger biasanya: Saldo = Saldo Lalu + Debit - Kredit
+                                    $runningBalance += ($lineDebit - $lineCredit);
+                                    
+                                    $posisi = ($runningBalance >= 0) ? 'D' : 'K';
+                                @endphp
+
                                 <tr>
-                                    {{-- KOLOM TANGGAL & NO BUKTI (ROWSPAN) --}}
-                                    {{-- Hanya muncul di baris pertama dari grup transaksi --}}
+                                    {{-- KOLOM TANGGAL (Masih Rowspan agar rapi per transaksi) --}}
                                     @if($index === 0)
                                         <td rowspan="{{ $rowCount }}" class="text-center bg-white align-top pt-3">
                                             {{ \Carbon\Carbon::parse($entry->date)->format('d/m/Y') }}
                                         </td>
-                                        <td rowspan="{{ $rowCount }}" class="text-center bg-white align-top pt-3 small">
-                                            {{ $entry->transaction_code }}
-                                        </td>
                                     @endif
 
-                                    {{-- KOLOM KETERANGAN (SPLIT) --}}
+                                    {{-- KOLOM KETERANGAN --}}
                                     <td class="bg-white">
                                         @if($split)
                                             {{ $split->account_code }} - {{ $split->account_name }}
                                         @else
-                                            {{-- Fallback jika tidak ada akun lawan (misal Saldo Awal) --}}
                                             <span class="text-muted fst-italic">Penyesuaian / Saldo Awal</span>
                                         @endif
                                     </td>
 
-                                    {{-- KOLOM DEBIT / KREDIT (LOGIKA NOMINAL) --}}
-                                    @php
-                                        $displayDebit = 0;
-                                        $displayCredit = 0;
-
-                                        if ($split) {
-                                            if ($entry->debit > 0) {
-                                                // Jika Transaksi Utama adalah DEBIT (Uang Masuk), 
-                                                // maka rinciannya kita ambil dari nilai Kredit si Lawan (atau debitnya)
-                                                // dan kita taruh di kolom DEBIT agar user tahu "Ini lho komponen debitnya"
-                                                $displayDebit = ($split->credit > 0) ? $split->credit : $split->debit;
-                                            } else {
-                                                // Sebaliknya untuk KREDIT
-                                                $displayCredit = ($split->debit > 0) ? $split->debit : $split->credit;
-                                            }
-                                        } else {
-                                            // Fallback single row
-                                            $displayDebit = $entry->debit;
-                                            $displayCredit = $entry->credit;
-                                        }
-                                    @endphp
-
+                                    {{-- KOLOM DEBIT --}}
                                     <td class="text-end bg-white">
-                                        {{ $displayDebit > 0 ? number_format($displayDebit, 0, ',', '.') : '-' }}
-                                    </td>
-                                    <td class="text-end bg-white">
-                                        {{ $displayCredit > 0 ? number_format($displayCredit, 0, ',', '.') : '-' }}
+                                        {{ $lineDebit > 0 ? number_format($lineDebit, 0, ',', '.') : '-' }}
                                     </td>
 
-                                    {{-- KOLOM D/K & SALDO (ROWSPAN) --}}
-                                    {{-- Hanya muncul di baris pertama --}}
-                                    @if($index === 0)
-                                        <td rowspan="{{ $rowCount }}" class="text-center fw-bold text-secondary bg-white align-top pt-3">
-                                            {{ $posisi }}
-                                        </td>
-                                        <td rowspan="{{ $rowCount }}" class="text-end fw-bold text-dark bg-white align-top pt-3">
-                                            {{ number_format(abs($runningBalance), 0, ',', '.') }}
-                                        </td>
-                                    @endif
+                                    {{-- KOLOM KREDIT --}}
+                                    <td class="text-end bg-white">
+                                        {{ $lineCredit > 0 ? number_format($lineCredit, 0, ',', '.') : '-' }}
+                                    </td>
+
+                                    {{-- KOLOM D/K (UNMERGED - Muncul di setiap baris) --}}
+                                    <td class="text-center fw-bold text-secondary bg-white">
+                                        {{ $posisi }}
+                                    </td>
+
+                                    {{-- KOLOM SALDO (UNMERGED - Muncul di setiap baris) --}}
+                                    <td class="text-end fw-bold text-dark bg-white">
+                                        {{ number_format(abs($runningBalance), 0, ',', '.') }}
+                                    </td>
                                 </tr>
                             @endforeach
+
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center py-5 text-muted bg-white">
+                                <td colspan="6" class="text-center py-5 text-muted bg-white">
                                     <div class="d-flex flex-column align-items-center">
                                         <i class="bi bi-journal-x fs-1 mb-2 text-secondary"></i>
                                         <p class="mb-0">Tidak ada data transaksi pada periode ini.</p>
@@ -178,7 +176,7 @@
                     {{-- FOOTER TOTAL --}}
                     <tfoot class="bg-light fw-bold border-top" style="border-top: 2px solid #dee2e6 !important;">
                         <tr>
-                            <td colspan="3" class="text-end text-uppercase py-3 pe-3">Total Mutasi</td>
+                            <td colspan="2" class="text-end text-uppercase py-3 pe-3">Total Mutasi</td>
                             <td class="text-end py-3 fw-bold">
                                 {{ number_format($entries->sum('debit'), 0, ',', '.') }}
                             </td>
@@ -186,11 +184,13 @@
                                 {{ number_format($entries->sum('credit'), 0, ',', '.') }}
                             </td>
                             <td></td>
+                            {{-- Saldo Akhir di Footer tetap ambil saldo terakhir --}}
                             <td class="text-end py-3 bg-white border text-dark">
                                 {{ number_format(abs($runningBalance), 0, ',', '.') }}
                             </td>
                         </tr>
                     </tfoot>
+
                 </table>
             </div>
             
@@ -208,7 +208,7 @@
             </div>
         </div>
     @else
-        {{-- EMPTY STATE (BELUM PILIH AKUN) --}}
+        {{-- EMPTY STATE --}}
         <div class="card shadow-sm border-0 bg-white">
             <div class="card-body text-center py-5">
                 <div class="py-4">

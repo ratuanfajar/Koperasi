@@ -1,10 +1,10 @@
 import json
 import os
-from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.exceptions import OutputParserException
-
+    
 # 1. Konfigurasi Path
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 COA_PATH = os.path.join(BASE_DIR, 'base_knowledge', 'coa.json')
@@ -108,9 +108,15 @@ def analyze_ocr_transaction(ocr_input):
         ("human", human_prompt)
     ])
 
-    llm = ChatGroq(
-        temperature=0, 
-        model_name="llama-3.3-70b-versatile"
+    # llm = ChatGroq(
+    #     temperature=0, 
+    #     model_name="llama-3.3-70b-versatile"
+    # )
+
+    llm = ChatOpenAI(
+        temperature=0,
+        model="gpt-4o-mini", 
+        request_timeout=600  
     )
 
     parser = JsonOutputParser()

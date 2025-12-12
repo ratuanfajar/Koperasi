@@ -21,7 +21,7 @@
                 <a href="{{ $isDataEmpty ? '#' : route('ledger.export', request()->query()) }}" 
                    class="btn btn-primary {{ $isDataEmpty ? 'disabled' : '' }}"
                    @if($isDataEmpty) onclick="event.preventDefault(); alert('Tidak ada data.');" @endif>
-                    <i class="bi bi-download me-1"></i> Unduh CSV
+                    <i class="bi bi-download me-1"></i> Unduh File CSV
                 </a>
             </div>
         </div>
@@ -79,7 +79,7 @@
                                     <td rowspan="{{ $rowCount }}" class="text-center bg-white align-top pt-3">
                                         <div class="dropdown">
                                             <button class="btn btn-sm btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                Menu
+                                                Pilih Aksi
                                             </button>
                                             <ul class="dropdown-menu shadow-sm">
                                                 {{-- 1. LIHAT BUKTI --}}

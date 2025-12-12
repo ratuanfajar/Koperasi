@@ -71,8 +71,13 @@ class AccountCodeController extends Controller
         ]);
 
         if ($request->hasFile('document')) {
-            $path = $request->file('document')->store('uploads', 'private');
-            session(['file_to_process' => $path]);
+            $file = $request->file('document');
+            $originalName = $file->getClientOriginalName();
+            $path = $file->store('uploads', 'private');
+            session([
+                'file_to_process' => $path,
+                'original_filename' => $originalName
+            ]);
             return redirect()->route('account-code-recommender.show', ['step' => 2])
                 ->with('success', 'File berhasil di-upload.'); 
         }
@@ -85,6 +90,8 @@ class AccountCodeController extends Controller
     {
         set_time_limit(0); 
         $path = session('file_to_process');
+        $originalName = session('original_filename', basename($path));
+
         if (!$path) return response()->json(['status' => 'error', 'message' => 'File tidak ditemukan.'], 400);
 
         $fullPath = Storage::disk('private')->path($path);
@@ -93,7 +100,8 @@ class AccountCodeController extends Controller
             $response = Http::asMultipart()
                 ->timeout(600)       
                 ->connectTimeout(600) 
-                ->attach('file', file_get_contents($fullPath), basename($path))
+                // ->attach('file', file_get_contents($fullPath), basename($path))
+                ->attach('file', file_get_contents($fullPath), $originalName)
                 ->post('http://127.0.0.1:5000/analyze');
 
             if (!$response->successful()) {

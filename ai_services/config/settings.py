@@ -12,9 +12,15 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(STATIC_DIR, exist_ok=True)
 os.makedirs(WEIGHTS_DIR, exist_ok=True)
 
-# GROQ key taken from environment
-GROQ_API_KEY = os.getenv('GROQ_API_KEY')
-TESSERACT_PATH= os.getenv("TESSERACT_PATH")
+# Load env variables
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_BASE = os.getenv("OPENAI_API_BASE")
+TESSERACT_PATH = os.getenv("TESSERACT_PATH")
+
+# Also export them to os.environ (optional)
+os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+os.environ["OPENAI_API_BASE"] = OPENAI_API_BASE
+os.environ["TESSERACT_PATH"] = TESSERACT_PATH
 
 # Optional settings
 REAL_ESRGAN_MODEL = str(Path(WEIGHTS_DIR) / 'realesr-general-x4v3.pth')

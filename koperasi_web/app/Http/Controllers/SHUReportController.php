@@ -144,7 +144,7 @@ class SHUReportController extends Controller
         // 401: Jasa Pinjaman
         $partisipasi_bunga = $getBalance('401', 'credit'); 
         // 402: Provisi, 403: Administrasi
-        $partisipasi_lain  = $getBalance(['402', '403'], 'credit'); 
+        $partisipasi_lain  = $getBalance(['40', '402', '403'], 'credit'); 
         
         $total_partisipasi = $partisipasi_bunga + $partisipasi_lain;
 

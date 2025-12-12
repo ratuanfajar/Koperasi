@@ -47,9 +47,9 @@
                                     <p class="fw-bold mb-1 text-dark">Drag & Drop file di sini</p>
                                     <p class="text-muted small mb-3">atau</p>
                                     <button type="button" id="browseBtn" class="btn btn-outline-primary rounded-pill px-4">
-                                        Pilih File dari Komputer
+                                        Pilih File
                                     </button>
-                                    <p class="mt-3 text-muted" style="font-size: 0.75rem;">Maksimal ukuran file: 10MB</p>
+                                    <p class="mt-3 text-muted" style="font-size: 0.75rem;">Maksimal ukuran file: 2MB</p>
                                 </div>
                             </div>
                             <input type="file" name="document" id="fileInput" class="d-none" accept=".jpg,.jpeg,.png">

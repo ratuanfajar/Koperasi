@@ -21,6 +21,13 @@ init_ocr()
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXT
 
+def log_info(msg):
+    app.logger.info(msg)
+    print(f"[INFO] {msg}")
+
+def log_error(msg):
+    app.logger.error(msg)
+    print(f"[ERROR] {msg}")
 
 @app.route('/')
 def home():
@@ -47,17 +54,21 @@ def analyze_receipt():
     save_path = os.path.join(app.config['UPLOAD_FOLDER'], fname)
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     file.save(save_path)
+    log_info(f"Uploaded file saved: {save_path}")
 
     try:
         # 1) preprocessing pipeline
         processed_path = final_pipeline(save_path, out_dir=OUTPUT_DIR, filename=f'pre_{fname}')
+        log_info(f"Preprocessing success: {processed_path}")
 
         # 2) OCR
         ocr_raw = run_ocr(processed_path)
         ocr_json = convert_paddleocr_to_json(ocr_raw[0])
+        log_info("OCR succeeded")
 
         # 3) LLM analysis
         llm_result = analyze_ocr_transaction(ocr_json)
+        log_info("LLM analysis completed")
 
         return jsonify({
             'ocr': ocr_json,
@@ -65,7 +76,11 @@ def analyze_receipt():
         })
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        log_error(f"Processing error: {str(e)}")
+        # Print stack trace di console untuk debug
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':

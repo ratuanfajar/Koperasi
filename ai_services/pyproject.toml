@@ -10,6 +10,7 @@ dependencies = [
     "flask-cors>=6.0.1",
     "groq>=0.36.0",
     "langchain-groq>=1.1.0",
+    "langchain-openai>=1.1.1",
     "numpy>=2.3.5",
     "opencv-python>=4.11.0.86",
     "paddleocr>=3.3.2",
@@ -20,5 +21,6 @@ dependencies = [
     "realesrgan>=0.3.0",
     "requests>=2.32.5",
     "torch>=2.9.1",
+    "waitress>=3.0.2",
     "werkzeug>=3.1.3",
 ]

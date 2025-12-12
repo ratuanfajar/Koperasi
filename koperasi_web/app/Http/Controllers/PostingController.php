@@ -42,14 +42,11 @@ class PostingController extends Controller
             }
         }
 
-        // Query Data (Hanya jika ada akun terpilih)
         if ($selectedAccount) {
-            // A. Hitung Saldo Awal (Sama)
             $saldoAwal = LedgerEntry::where('account_code', $selectedAccount->code)
                 ->where('date', '<', $startDate)
                 ->sum(DB::raw('debit - credit'));
 
-            // B. Ambil Data Transaksi Periode Ini (Sama)
             $entriesQuery = LedgerEntry::where('account_code', $selectedAccount->code)
                 ->whereBetween('date', [$startDate, $endDate])
                 ->orderBy('date', 'asc')
@@ -58,13 +55,10 @@ class PostingController extends Controller
             $entries = $entriesQuery->paginate(10); 
     
             $entries->getCollection()->transform(function ($entry) use ($selectedAccount) {
-
                 $contraEntries = LedgerEntry::where('transaction_code', $entry->transaction_code)
                     ->where('account_code', '!=', $selectedAccount->code)
                     ->get(); 
-
                 $entry->splits = $contraEntries;
-                
                 return $entry;
             });
 
@@ -117,39 +111,34 @@ class PostingController extends Controller
         return new StreamedResponse(function() use ($entries, $selectedAccount, $saldo, $accountCode) {
             $handle = fopen('php://output', 'w');
             
-            // Header Info
-            fputcsv($handle, ['LAPORAN BUKU BESAR (DETAIL)']);
+            fputcsv($handle, ['LAPORAN BUKU BESAR']);
             fputcsv($handle, ['Akun:', $selectedAccount->code . ' - ' . $selectedAccount->name]);
             fputcsv($handle, []); 
 
-            // Header Tabel
             fputcsv($handle, [
-                'Tanggal', 'No. Bukti', 'Keterangan (Akun Lawan)', 'Debit (Rp)', 'Kredit (Rp)', 'D/K', 'Saldo (Rp)'
+                'Tanggal', 'Keterangan', 'Debit (Rp)', 'Kredit (Rp)', 'D/K', 'Saldo (Rp)'
             ]);
 
-            // 4. INISIALISASI VARIABEL TOTAL
             $totalDebit = 0;
             $totalCredit = 0;
 
             foreach ($entries as $entry) {
-                // Logic Saldo berjalan
-                $saldo += ($entry->debit - $entry->credit);
-                $posisi = ($saldo >= 0) ? 'D' : 'K';
-
-                // Ambil Contra Entries (Split)
+                // Ambil Contra Entries
                 $contraEntries = LedgerEntry::where('transaction_code', $entry->transaction_code)
                     ->where('account_code', '!=', $accountCode)
                     ->get();
 
                 if ($contraEntries->isEmpty()) {
                     
-                    // 5. TAMBAHKAN KE TOTAL (Kasus Single Row)
+                    // UPDATE SALDO (Single Row)
+                    $saldo += ($entry->debit - $entry->credit);
+                    $posisi = ($saldo >= 0) ? 'D' : 'K';
+
                     $totalDebit  += $entry->debit;
                     $totalCredit += $entry->credit;
 
                     fputcsv($handle, [
                         $entry->date->format('Y-m-d'),
-                        $entry->transaction_code,
                         'Penyesuaian / Saldo Awal', 
                         $entry->debit,
                         $entry->credit,
@@ -169,33 +158,31 @@ class PostingController extends Controller
                             $showCredit = ($contra->debit > 0) ? $contra->debit : $contra->credit;
                         }
 
-                        // 6. TAMBAHKAN KE TOTAL (Kasus Split Row)
+                        // UPDATE SALDO (Split Row Logic)
+                        // Saldo diupdate setiap baris split
+                        $saldo += ($showDebit - $showCredit);
+                        $posisi = ($saldo >= 0) ? 'D' : 'K';
+
                         $totalDebit  += $showDebit;
                         $totalCredit += $showCredit;
 
                         $dateShow  = ($index === 0) ? $entry->date->format('Y-m-d') : '';
-                        $buktiShow = ($index === 0) ? $entry->transaction_code : '';
-                        $saldoShow = ($index === $contraEntries->count() - 1) ? abs($saldo) : ''; 
-                        $posisiShow= ($index === $contraEntries->count() - 1) ? $posisi : '';
-
+                        
                         fputcsv($handle, [
                             $dateShow,
-                            $buktiShow,
                             $contra->account_name, 
                             $showDebit,            
                             $showCredit,           
-                            $posisiShow,
-                            $saldoShow 
+                            $posisi,        // Posisi diupdate per baris
+                            abs($saldo)     // Saldo diupdate per baris
                         ]);
                     }
                 }
             }
 
-            // 7. CETAK BARIS TOTAL DI FOOTER CSV
             fputcsv($handle, []); 
             fputcsv($handle, [
                 '',                 
-                '',                
                 'TOTAL MUTASI',     
                 $totalDebit,       
                 $totalCredit,     
